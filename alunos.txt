@@ -34,7 +34,7 @@ Meu nome é Augusto José quero me tornar um dev com especialidade em QA - hoje 
 meu nome é Vitor Santana quero ser programar - hoje é 16/06/2026 11h37
 Meu nome é Heveny, quero me desenvolver em testes de software, sou da turma 4, que tem o melhor professor em linha reta.  
 Me chamo Ricardo Alexandre e hoje inicio o curso de formação acelerada em teste de software. Sou da turma 04 (melhor professor do FAP)
-Me chamo Fabiano - quero aprender automação e performace - sou da turma do melhor professor do FAP. 
+Me chamo Fabiano - quero aprender IA, Automação, segurança e Performance - sou da turma do melhor professor do FAP. 
 Sheila Amorim, Recife 16 de Junho de 2026, começo minha jornada na Formação Acelerada do Curso de Teste de Software- Turma-4. Rumo ao sucesso na minha nova carreira, em nome de Jesus. Minha meta é alcançar a residência e mudar de carreira.
  
 >>>>>>> e3bbe0aff126099e14a121a2560fff8f84b41650
