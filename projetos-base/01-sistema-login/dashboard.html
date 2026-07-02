@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Área Restrita</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<script>
+    // Se não estiver autenticado, chuta de volta para o login
+    if (localStorage.getItem('isAuthenticated') !== 'true') {
+        window.location.href = 'index.html';
+    }
+</script>
+
+<div class="navbar">
+    <h2>Sistema Interno</h2>
+    <button class="btn btn-logout" onclick="logout()">Sair (Logout)</button>
+</div>
+
+<div class="container">
+    <h1>Bem-vindo, <span id="userName">Usuário</span>!</h1>
+    
+    <div class="card">
+        <h3>Seus Dados de Sessão</h3>
+        <p><strong>Nível de Acesso:</strong> <span id="userRole" class="badge">Carregando...</span></p>
+        <p>A autenticação foi realizada com sucesso.</p>
+    </div>
+
+    <div class="card" id="adminPanel" style="display: none; border-left: 4px solid #166534;">
+        <h3>Painel Exclusivo de Administração</h3>
+        <p>Acesso liberado apenas para perfis administradores.</p>
+        <button class="btn" style="background: #166534; width: auto;">Gerenciar Usuários</button>
+    </div>
+</div>
+
+<script>
+    const userData = JSON.parse(localStorage.getItem('currentUser'));
+    if (userData) {
+        document.getElementById('userName').textContent = userData.name;
+        const roleSpan = document.getElementById('userRole');
+        roleSpan.textContent = userData.role.toUpperCase();
+        
+        if (userData.role === 'admin') {
+            roleSpan.classList.add('admin');
+            document.getElementById('adminPanel').style.display = 'block';
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('currentUser');
+        window.location.href = 'index.html';
+    }
+</script>
+</body>
+</html>

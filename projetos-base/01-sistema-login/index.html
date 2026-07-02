@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA System - Autenticação</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="login-container">
+    <h2>Acesso ao Sistema</h2>
+    <div class="form-group">
+        <label for="email">E-mail Corporativo</label>
+        <input type="email" id="email" placeholder="Digite seu e-mail" required>
+    </div>
+    <div class="form-group">
+        <label for="password">Senha</label>
+        <input type="password" id="password" placeholder="Mínimo de 8 caracteres" required>
+    </div>
+    <button class="btn" id="loginBtn" onclick="attemptLogin()">Entrar</button>
+    <div class="error-message" id="errorMessage"></div>
+
+    <div class="credentials-info">
+        <strong>Massa de Dados para QA:</strong><br>
+        Admin: admin@system.com | Senha: AdminPassword123<br>
+        Usuário: user@system.com | Senha: UserPassword123
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
