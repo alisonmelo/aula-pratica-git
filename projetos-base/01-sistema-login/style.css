@@ -3,6 +3,11 @@ body {
     font-family: Arial, sans-serif; 
     background-color: #f1f5f9; 
     margin: 0; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    
 }
 
 /* Layout do Login */
