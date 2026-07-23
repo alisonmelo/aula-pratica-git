@@ -38,6 +38,8 @@
 
 <script>
     const userData = JSON.parse(localStorage.getItem('currentUser'));
+    const token = localStorage.getItem('token');
+    
     if (userData) {
         document.getElementById('userName').textContent = userData.name;
         const roleSpan = document.getElementById('userRole');
@@ -49,9 +51,34 @@
         }
     }
 
+    async function loadUsers() {
+        try {
+            const response = await fetch('http://localhost:3000/api/users', {
+                method: 'GET',
+                // Passando o JWT no cabeçalho (Header)
+                headers: { 'Authorization': `Bearer ${token}` } 
+            });
+            
+            if(response.ok) {
+                const users = await response.json();
+                alert(`Sucesso! ${users.length} usuários carregados da API. (Abra o console para ver os dados)`);
+                console.log("Usuários:", users);
+            } else {
+                const error = await response.json();
+                alert("Erro ao buscar usuários: " + error.error);
+            }
+        } catch (e) {
+            alert("Erro de comunicação com a API.");
+        }
+    }
+
+    // Adiciona o evento ao botão do painel admin
+    document.querySelector('#adminPanel button').addEventListener('click', loadUsers);
+
     function logout() {
         localStorage.removeItem('isAuthenticated');
         localStorage.removeItem('currentUser');
+        localStorage.removeItem('token'); // Remove o token
         window.location.href = 'index.html';
     }
 </script>
