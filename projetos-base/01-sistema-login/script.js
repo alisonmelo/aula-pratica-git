@@ -1,6 +1,6 @@
 const MAX_ATTEMPTS = 3;
 const LOCK_TIME_MS = 1 * 60 * 1000; 
-const API_URL = 'http://localhost:3000/api'; 
+const API_URL = 'https://api-qa-fap2026.onrender.com/api'; 
 
 function failedKey(email) { return `failedAttempts_${email.toLowerCase()}`; }
 function lockKey(email) { return `lockUntil_${email.toLowerCase()}`; }
