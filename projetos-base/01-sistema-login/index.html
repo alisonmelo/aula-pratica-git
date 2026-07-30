@@ -3,32 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QA System - Autenticação</title>
+    <title>QA System - Autenticação V2</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="login-container">
-    <h2>Acesso ao Sistema</h2>
-    <div class="form-group">
-        <label for="email">E-mail Corporativo</label>
-        <input type="email" id="email" placeholder="Digite seu e-mail" required>
+    
+    <!-- SEÇÃO DE LOGIN -->
+    <div id="section-login">
+        <h2>Acesso ao Sistema</h2>
+        <div class="form-group">
+            <label for="email">E-mail</label>
+            <input type="email" id="email" placeholder="Digite seu e-mail" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Senha</label>
+            <input type="password" id="password" placeholder="Mínimo de 8 caracteres" required>
+        </div>
+        <button class="btn" id="loginBtn" onclick="attemptLogin()">Entrar</button>
+        
+        <div style="margin-top: 15px; text-align: center; font-size: 14px;">
+            <a href="#" onclick="toggleSection('section-register')" style="color: #1e3a8a; text-decoration: none;">Criar nova conta</a> | 
+            <a href="#" onclick="toggleSection('section-forgot')" style="color: #1e3a8a; text-decoration: none;">Esqueci minha senha</a>
+        </div>
+
+        <div class="credentials-info">
+            <strong>Massa de Dados para QA:</strong><br>
+            Admin: admin@system.com | Senha: AdminPassword123<br>
+            Usuário: user@system.com | Senha: UserPassword123
+        </div>
     </div>
-    <div class="form-group">
-        <label for="password">Senha</label>
-        <input type="password" id="password" placeholder="Mínimo de 8 caracteres" required>
+
+    <!-- SEÇÃO DE CADASTRO -->
+    <div id="section-register" style="display: none;">
+        <h2>Criar Conta</h2>
+        <div class="form-group">
+            <label for="reg-name">Nome Completo</label>
+            <input type="text" id="reg-name" placeholder="Digite seu nome" required>
+        </div>
+        <div class="form-group">
+            <label for="reg-email">E-mail</label>
+            <input type="email" id="reg-email" placeholder="Digite seu e-mail" required>
+        </div>
+        <div class="form-group">
+            <label for="reg-password">Senha</label>
+            <input type="password" id="reg-password" placeholder="Mínimo de 8 caracteres" required>
+        </div>
+        <button class="btn" id="registerBtn" style="background-color: #166534;" onclick="attemptRegister()">Cadastrar</button>
+        
+        <div style="margin-top: 15px; text-align: center; font-size: 14px;">
+            <a href="#" onclick="toggleSection('section-login')" style="color: #475569; text-decoration: none;">Voltar para o Login</a>
+        </div>
     </div>
-    <button class="btn" id="loginBtn" onclick="attemptLogin()">Entrar</button>
+
+    <!-- SEÇÃO ESQUECI A SENHA -->
+    <div id="section-forgot" style="display: none;">
+        <h2>Recuperar Senha</h2>
+        <p style="font-size: 14px; color: #475569; text-align: center;">Informe seu e-mail para receber as instruções.</p>
+        <div class="form-group">
+            <label for="forgot-email">E-mail</label>
+            <input type="email" id="forgot-email" placeholder="Digite seu e-mail" required>
+        </div>
+        <button class="btn" id="forgotBtn" style="background-color: #b45309;" onclick="attemptForgotPassword()">Recuperar Senha</button>
+        
+        <div style="margin-top: 15px; text-align: center; font-size: 14px;">
+            <a href="#" onclick="toggleSection('section-login')" style="color: #475569; text-decoration: none;">Voltar para o Login</a>
+        </div>
+    </div>
+
+    <!-- MENSAGENS GLOBAIS -->
     <div class="error-message" id="errorMessage"></div>
     <div class="status-message" id="statusMessage" style="display:none; margin-top:10px; text-align:center; font-size:14px; color:#065f46; background:#ecfdf5; padding:8px; border-radius:4px;"></div>
 
-    <div class="credentials-info">
-        <strong>Massa de Dados para QA:</strong><br>
-        Admin: admin@system.com | Senha: AdminPassword123<br>
-        Usuário: user@system.com | Senha: UserPassword123<br>
-        Bloqueado: blocked@system.com | Senha: Blocked123 (bloqueado para teste)<br>
-        Lento: slow@system.com | Senha: SlowPass123 (teste de tempo de resposta)
-    </div>
 </div>
 
 <script src="script.js"></script>

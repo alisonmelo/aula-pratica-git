@@ -8,10 +8,8 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Chave secreta para o JWT (em produção, isso fica no .env)
 const JWT_SECRET = process.env.JWT_SECRET || 'chave_secreta_fap2026_qa';
 
-// Conexão Mongo
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('✅ Conectado ao MongoDB!'))
     .catch(err => console.error('❌ Erro no MongoDB:', err));
@@ -19,12 +17,11 @@ mongoose.connect(process.env.MONGO_URI)
 const UserSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: String,
+    role: { type: String, default: 'user' },
     name: String
 });
 const User = mongoose.model('User', UserSchema);
 
-// Popular banco (Setup inicial)
 async function seedDatabase() {
     const count = await User.countDocuments();
     if (count === 0) {
@@ -38,35 +35,27 @@ async function seedDatabase() {
 }
 seedDatabase();
 
-// ---------------------------------------------------------
-// MIDDLEWARES
-// ---------------------------------------------------------
-
-// Middleware de Autenticação JWT
+// --- MIDDLEWARES ---
 const verifyToken = (req, res, next) => {
-    const token = req.headers['authorization'];
-    if (!token) return res.status(403).json({ error: "Token não fornecido." });
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) return res.status(403).json({ error: "Token não fornecido." });
 
-    jwt.verify(token.split(" ")[1], JWT_SECRET, (err, decoded) => {
+    const token = authHeader.split(" ")[1];
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) return res.status(401).json({ error: "Token inválido ou expirado." });
-        req.user = decoded; // Salva os dados do usuário na requisição
+        req.user = decoded; 
         next();
     });
 };
 
-// Middleware para verificar se é Admin
 const isAdmin = (req, res, next) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: "Acesso negado. Apenas administradores." });
-    }
+    if (req.user.role !== 'admin') return res.status(403).json({ error: "Acesso negado." });
     next();
 };
 
-// ---------------------------------------------------------
-// ROTAS
-// ---------------------------------------------------------
+// --- ROTAS ---
 
-// Rota 1: Autenticação (Gera o Token)
+// 1. LOGIN
 app.post('/api/login', async (req, res, next) => {
     try {
         const { email, password } = req.body;
@@ -75,10 +64,9 @@ app.post('/api/login', async (req, res, next) => {
         if (email === 'slow@system.com') await new Promise(r => setTimeout(r, 1800));
 
         const user = await User.findOne({ email });
-        if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+        if (!user) return res.status(404).json({ error: "Erro: usuário não encontrado." });
         if (user.password !== password) return res.status(401).json({ error: "Credenciais inválidas." });
 
-        // Gera o Token JWT válido por 1 hora
         const token = jwt.sign({ id: user._id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
 
         res.status(200).json({
@@ -87,14 +75,56 @@ app.post('/api/login', async (req, res, next) => {
             user: { email: user.email, name: user.name, role: user.role }
         });
     } catch (error) {
-        next(error); // Joga para o middleware de erro
+        next(error); 
     }
 });
 
-// Rota 2: Listar Usuários (Nova Funcionalidade - Protegida JWT + Admin)
+// 2. CADASTRO DE NOVO USUÁRIO (Nova Feature)
+app.post('/api/register', async (req, res, next) => {
+    try {
+        const { name, email, password } = req.body;
+
+        if (!name || !email || !password) {
+            return res.status(400).json({ error: "Todos os campos são obrigatórios." });
+        }
+
+        if (password.length < 8) {
+            return res.status(400).json({ error: "A senha deve conter no mínimo 8 caracteres." });
+        }
+
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(409).json({ error: "Já existe um usuário cadastrado com este e-mail." });
+        }
+
+        const newUser = new User({ name, email, password, role: 'user' });
+        await newUser.save();
+
+        res.status(201).json({ message: "Usuário cadastrado com sucesso!" });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// 3. RECUPERAÇÃO DE SENHA (Nova Feature)
+app.post('/api/forgot-password', async (req, res, next) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ error: "O e-mail é obrigatório." });
+
+        // Regra de Negócio da Atividade: Mensagem genérica independentemente de o usuário existir
+        // Não fazemos validação se o e-mail existe na base propositalmente.
+        res.status(200).json({ 
+            message: "Se o e-mail existir em nossa base, um link de recuperação será enviado." 
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// 4. LISTAR USUÁRIOS
 app.get('/api/users', verifyToken, isAdmin, async (req, res, next) => {
     try {
-        // Retorna todos os usuários, mas sem as senhas por segurança
         const users = await User.find({}, '-password');
         res.status(200).json(users);
     } catch (error) {
@@ -102,9 +132,7 @@ app.get('/api/users', verifyToken, isAdmin, async (req, res, next) => {
     }
 });
 
-// ---------------------------------------------------------
-// MIDDLEWARE DE ERRO GLOBAL
-// ---------------------------------------------------------
+// --- MIDDLEWARE DE ERRO GLOBAL ---
 app.use((err, req, res, next) => {
     console.error('Erro Capturado:', err.message);
     res.status(500).json({ error: "Ocorreu um erro interno no servidor." });
