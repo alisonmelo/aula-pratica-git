@@ -38,22 +38,21 @@
         <!-- Área onde a lista de usuários vai aparecer -->
         <div id="usersContainer" style="display: none; margin-top: 20px;">
             <hr style="border: 0; border-top: 1px solid #e2e8f0; margin-bottom: 15px;">
-            <h4>Lista de Usuários Cadastrados</h4>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px;">
-                <thead>
-                    <tr style="background-color: #f8fafc; text-align: left;">
-                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1;">Nome</th>
-                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1;">E-mail</th>
-                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1;">Perfil</th>
-                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1;">Nova Senha</th>
-                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1;">Senha Admin</th>
-                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1;">Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="usersTableBody">
-                    <!-- Os usuários serão injetados aqui via JavaScript -->
-                </tbody>
-            </table>
+            <h4>Gerenciamento de Usuários</h4>
+
+            <div class="admin-toolbar">
+                <input id="userSearchInput" type="text" placeholder="Buscar por nome ou e-mail" />
+                <select id="userRoleFilter">
+                    <option value="all">Todos os perfis</option>
+                    <option value="admin">Admin</option>
+                    <option value="user">Usuário</option>
+                    <option value="blocked">Bloqueado</option>
+                </select>
+            </div>
+
+            <div id="usersSummary" class="users-summary"></div>
+            <div id="usersList" class="users-list"></div>
+            <div id="paginationControls" class="pagination"></div>
         </div>
     </div>
 </div>
@@ -62,6 +61,14 @@
     const API_URL = 'https://api-qa-fap2026.onrender.com/api';
     const userData = JSON.parse(localStorage.getItem('currentUser'));
     const token = localStorage.getItem('token');
+    const state = {
+        users: [],
+        filteredUsers: [],
+        currentPage: 1,
+        perPage: 5,
+        search: '',
+        role: 'all'
+    };
     
     if (userData) {
         document.getElementById('userName').textContent = userData.name || userData.email;
@@ -74,13 +81,118 @@
         }
     }
 
+    function applyFilters() {
+        const search = state.search.toLowerCase();
+        state.filteredUsers = state.users.filter(user => {
+            const matchesSearch = !search || `${user.name || ''} ${user.email || ''}`.toLowerCase().includes(search);
+            const matchesRole = state.role === 'all' || user.role === state.role;
+            return matchesSearch && matchesRole;
+        });
+        state.currentPage = 1;
+    }
+
+    function renderPagination() {
+        const controls = document.getElementById('paginationControls');
+        const totalPages = Math.max(1, Math.ceil(state.filteredUsers.length / state.perPage));
+
+        if (totalPages <= 1) {
+            controls.innerHTML = '';
+            return;
+        }
+
+        controls.innerHTML = `
+            <button class="pagination-btn" ${state.currentPage === 1 ? 'disabled' : ''} onclick="changePage(${state.currentPage - 1})">Anterior</button>
+            <span class="pagination-info">Página ${state.currentPage} de ${totalPages}</span>
+            <button class="pagination-btn" ${state.currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${state.currentPage + 1})">Próxima</button>
+        `;
+    }
+
+    function changePage(page) {
+        const totalPages = Math.max(1, Math.ceil(state.filteredUsers.length / state.perPage));
+        state.currentPage = Math.min(totalPages, Math.max(1, page));
+        renderUsers();
+    }
+
+    function renderUsers() {
+        const list = document.getElementById('usersList');
+        const summary = document.getElementById('usersSummary');
+        const start = (state.currentPage - 1) * state.perPage;
+        const pageUsers = state.filteredUsers.slice(start, start + state.perPage);
+
+        summary.textContent = `${state.filteredUsers.length} usuário(s) encontrado(s)`;
+
+        if (!state.filteredUsers.length) {
+            list.innerHTML = '<div class="empty-state">Nenhum usuário encontrado para os filtros selecionados.</div>';
+            renderPagination();
+            return;
+        }
+
+        list.innerHTML = pageUsers.map(user => {
+            const badgeClass = user.role === 'admin' ? 'badge admin' : user.role === 'blocked' ? 'badge blocked' : 'badge';
+            const selectedRole = user.role || 'user';
+            const isBlocked = user.role === 'blocked';
+            return `
+                <article class="user-card">
+                    <button class="user-card-toggle" type="button" onclick="toggleCard(this.closest('.user-card'))">
+                        <div>
+                            <strong>${(user.name || 'Sem nome').replace(/</g, '&lt;')}</strong>
+                            <div class="user-card-email">${(user.email || '-').replace(/</g, '&lt;')}</div>
+                        </div>
+                        <div class="user-card-meta">
+                            <span class="${badgeClass}">${(user.role || 'user').toUpperCase()}</span>
+                            <span class="toggle-icon">▸</span>
+                        </div>
+                    </button>
+                    <div class="user-card-body">
+                        <div class="user-card-grid">
+                            <label>
+                                <span>Nome</span>
+                                <input data-field="name" type="text" value="${(user.name || '').replace(/"/g, '&quot;')}" placeholder="Nome">
+                            </label>
+                            <label>
+                                <span>E-mail</span>
+                                <input data-field="email" type="email" value="${(user.email || '').replace(/"/g, '&quot;')}" placeholder="E-mail">
+                            </label>
+                            <label>
+                                <span>Perfil</span>
+                                <select data-field="role">
+                                    <option value="user" ${selectedRole === 'user' ? 'selected' : ''}>Usuário</option>
+                                    <option value="admin" ${selectedRole === 'admin' ? 'selected' : ''}>Admin</option>
+                                    <option value="blocked" ${selectedRole === 'blocked' ? 'selected' : ''}>Bloqueado</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Nova senha</span>
+                                <input data-field="password" type="password" placeholder="Digite a nova senha">
+                            </label>
+                            <label>
+                                <span>Senha do admin</span>
+                                <input data-field="adminPassword" type="password" placeholder="Obrigatória para admin">
+                            </label>
+                        </div>
+                        <div class="user-card-actions">
+                            <button class="btn btn-small" onclick="saveUser('${user._id}', this)">Salvar</button>
+                            ${isBlocked ? `<button class="btn btn-small btn-success" onclick="unlockUser('${user._id}', this)">Desbloquear</button>` : ''}
+                        </div>
+                    </div>
+                </article>
+            `;
+        }).join('');
+
+        renderPagination();
+    }
+
+    function toggleCard(card) {
+        card.classList.toggle('is-open');
+    }
+
     async function loadUsers() {
         const btn = document.querySelector('#adminPanel button');
         const usersContainer = document.getElementById('usersContainer');
-        const tbody = document.getElementById('usersTableBody');
+        const list = document.getElementById('usersList');
 
         usersContainer.style.display = 'block';
-        tbody.innerHTML = '<tr><td colspan="6" style="padding: 12px; color: #64748b;">Carregando usuários...</td></tr>';
+        list.innerHTML = '<div class="empty-state">Carregando usuários...</div>';
         btn.textContent = 'Carregando...';
         btn.disabled = true;
 
@@ -92,7 +204,9 @@
             
             if (response.ok) {
                 const users = await response.json();
-                renderUsers(users);
+                state.users = users;
+                applyFilters();
+                renderUsers();
                 btn.textContent = 'Atualizar Lista';
             } else {
                 const error = await response.json();
@@ -107,57 +221,13 @@
         }
     }
 
-    function renderUsers(users) {
-        const tbody = document.getElementById('usersTableBody');
-        tbody.innerHTML = '';
-
-        if (!users.length) {
-            tbody.innerHTML = '<tr><td colspan="6" style="padding: 12px; color: #64748b;">Nenhum usuário encontrado.</td></tr>';
-            return;
-        }
-
-        users.forEach(user => {
-            const row = document.createElement('tr');
-            const badgeClass = user.role === 'admin' ? 'badge admin' : user.role === 'blocked' ? 'badge blocked' : 'badge';
-            const selectedRole = user.role || 'user';
-
-            row.innerHTML = `
-                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; color: #334155;">
-                    <input data-field="name" type="text" value="${(user.name || '').replace(/"/g, '&quot;')}" placeholder="Nome" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
-                </td>
-                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">
-                    <input data-field="email" type="email" value="${(user.email || '').replace(/"/g, '&quot;')}" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
-                </td>
-                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">
-                    <select data-field="role" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
-                        <option value="user" ${selectedRole === 'user' ? 'selected' : ''}>Usuário</option>
-                        <option value="admin" ${selectedRole === 'admin' ? 'selected' : ''}>Admin</option>
-                        <option value="blocked" ${selectedRole === 'blocked' ? 'selected' : ''}>Bloqueado</option>
-                    </select>
-                </td>
-                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">
-                    <input data-field="password" type="password" placeholder="Nova senha" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
-                </td>
-                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">
-                    <input data-field="adminPassword" type="password" placeholder="Senha admin" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
-                </td>
-                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">
-                    <button class="btn" onclick="saveUser('${user._id}', this)" style="width: auto; margin-top: 0;">Salvar</button>
-                    <button class="btn" onclick="unlockUser('${user._id}', this)" style="width: auto; margin-top: 6px; background: #16a34a;">Desbloquear</button>
-                    <span class="${badgeClass}" style="margin-left: 8px;">${(user.role || 'user').toUpperCase()}</span>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-    }
-
     async function saveUser(userId, button) {
-        const row = button.closest('tr');
-        const nameInput = row.querySelector('input[data-field="name"]');
-        const emailInput = row.querySelector('input[data-field="email"]');
-        const roleSelect = row.querySelector('select[data-field="role"]');
-        const passwordInput = row.querySelector('input[data-field="password"]');
-        const adminPasswordInput = row.querySelector('input[data-field="adminPassword"]');
+        const card = button.closest('.user-card');
+        const nameInput = card.querySelector('input[data-field="name"]');
+        const emailInput = card.querySelector('input[data-field="email"]');
+        const roleSelect = card.querySelector('select[data-field="role"]');
+        const passwordInput = card.querySelector('input[data-field="password"]');
+        const adminPasswordInput = card.querySelector('input[data-field="adminPassword"]');
 
         button.disabled = true;
         button.textContent = 'Salvando...';
@@ -210,9 +280,9 @@
     }
 
     async function unlockUser(userId, button) {
-        const row = button.closest('tr');
-        const nameInput = row.querySelector('input[data-field="name"]');
-        const emailInput = row.querySelector('input[data-field="email"]');
+        const card = button.closest('.user-card');
+        const nameInput = card.querySelector('input[data-field="name"]');
+        const emailInput = card.querySelector('input[data-field="email"]');
 
         button.disabled = true;
         button.textContent = 'Desbloqueando...';
@@ -254,6 +324,18 @@
         localStorage.removeItem('token');
         window.location.href = 'index.html';
     }
+
+    document.getElementById('userSearchInput').addEventListener('input', (event) => {
+        state.search = event.target.value;
+        applyFilters();
+        renderUsers();
+    });
+
+    document.getElementById('userRoleFilter').addEventListener('change', (event) => {
+        state.role = event.target.value;
+        applyFilters();
+        renderUsers();
+    });
 
     if (userData?.role === 'admin') {
         loadUsers();
