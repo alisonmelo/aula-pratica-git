@@ -37,7 +37,7 @@ function checkLockStatus(email) {
     
     if (lockTime && Date.now() < parseInt(lockTime)) {
         const minutesLeft = Math.ceil((parseInt(lockTime) - Date.now()) / 60000);
-        showError(`Conta bloqueada. Tente em ${minutesLeft} minuto(s).`);
+        showError(`Conta bloqueada por excesso de tentativas. Tente novamente em ${minutesLeft} minuto(s).`);
         document.getElementById('loginBtn').disabled = true;
         return true;
     } else if (lockTime) {
@@ -59,7 +59,7 @@ async function attemptLogin() {
     if (password.length < 8) return showError("A senha deve conter no mínimo 8 caracteres.");
 
     try {
-        const response = await fetch(`${API_BASE_URL}/login`, {
+        const response = await fetch(`${API_URL}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -103,7 +103,7 @@ async function attemptRegister() {
     if (password.length < 8) return showError("A senha deve conter no mínimo 8 caracteres.");
 
     try {
-        const response = await fetch(`${API_BASE_URL}/register`, {
+        const response = await fetch(`${API_URL}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email, password })
@@ -135,7 +135,7 @@ async function attemptForgotPassword() {
     if (!email) return showError("O e-mail é obrigatório para recuperação.");
 
     try {
-        const response = await fetch(`${API_BASE_URL}/forgot-password`, {
+        const response = await fetch(`${API_URL}/forgot-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email })
