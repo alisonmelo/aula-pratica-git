@@ -45,6 +45,9 @@
                         <th style="padding: 10px; border-bottom: 2px solid #cbd5e1;">Nome</th>
                         <th style="padding: 10px; border-bottom: 2px solid #cbd5e1;">E-mail</th>
                         <th style="padding: 10px; border-bottom: 2px solid #cbd5e1;">Perfil</th>
+                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1;">Nova Senha</th>
+                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1;">Senha Admin</th>
+                        <th style="padding: 10px; border-bottom: 2px solid #cbd5e1;">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="usersTableBody">
@@ -61,9 +64,9 @@
     const token = localStorage.getItem('token');
     
     if (userData) {
-        document.getElementById('userName').textContent = userData.name;
+        document.getElementById('userName').textContent = userData.name || userData.email;
         const roleSpan = document.getElementById('userRole');
-        roleSpan.textContent = userData.role.toUpperCase();
+        roleSpan.textContent = (userData.role || 'user').toUpperCase();
         
         if (userData.role === 'admin') {
             roleSpan.classList.add('admin');
@@ -72,53 +75,176 @@
     }
 
     async function loadUsers() {
+        const btn = document.querySelector('#adminPanel button');
+        const usersContainer = document.getElementById('usersContainer');
+        const tbody = document.getElementById('usersTableBody');
+
+        usersContainer.style.display = 'block';
+        tbody.innerHTML = '<tr><td colspan="6" style="padding: 12px; color: #64748b;">Carregando usuários...</td></tr>';
+        btn.textContent = 'Carregando...';
+        btn.disabled = true;
+
         try {
-            // Mudando o texto do botão para dar feedback visual
-            const btn = document.querySelector('#adminPanel button');
-            btn.textContent = "Carregando...";
-            
             const response = await fetch(`${API_URL}/users`, {
                 method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}` } 
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             
-            if(response.ok) {
+            if (response.ok) {
                 const users = await response.json();
-                
-                // Exibe o container da tabela
-                document.getElementById('usersContainer').style.display = 'block';
-                const tbody = document.getElementById('usersTableBody');
-                
-                // Limpa a tabela antes de preencher para não duplicar se clicar duas vezes
-                tbody.innerHTML = ""; 
-                
-                // Desenha cada linha da tabela
-                users.forEach(user => {
-                    const row = document.createElement('tr');
-                    
-                    // Lógica para deixar o badge verdinho se for admin
-                    const badgeClass = user.role === 'admin' ? 'badge admin' : 'badge';
-                    
-                    row.innerHTML = `
-                        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; color: #334155;">${user.name}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; color: #64748b;">${user.email}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">
-                            <span class="${badgeClass}">${user.role.toUpperCase()}</span>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
-                
-                btn.textContent = "Atualizar Lista"; // Volta o botão ao normal
-                
+                renderUsers(users);
+                btn.textContent = 'Atualizar Lista';
             } else {
                 const error = await response.json();
-                alert("Erro ao buscar usuários: " + error.error);
-                btn.textContent = "Gerenciar Usuários";
+                alert('Erro ao buscar usuários: ' + (error.error || 'Falha desconhecida'));
+                btn.textContent = 'Gerenciar Usuários';
             }
         } catch (e) {
-            alert("Erro de comunicação com a API.");
-            document.querySelector('#adminPanel button').textContent = "Gerenciar Usuários";
+            alert('Erro de comunicação com a API.');
+            btn.textContent = 'Gerenciar Usuários';
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    function renderUsers(users) {
+        const tbody = document.getElementById('usersTableBody');
+        tbody.innerHTML = '';
+
+        if (!users.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="padding: 12px; color: #64748b;">Nenhum usuário encontrado.</td></tr>';
+            return;
+        }
+
+        users.forEach(user => {
+            const row = document.createElement('tr');
+            const badgeClass = user.role === 'admin' ? 'badge admin' : user.role === 'blocked' ? 'badge blocked' : 'badge';
+            const selectedRole = user.role || 'user';
+
+            row.innerHTML = `
+                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; color: #334155;">
+                    <input data-field="name" type="text" value="${(user.name || '').replace(/"/g, '&quot;')}" placeholder="Nome" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">
+                    <input data-field="email" type="email" value="${(user.email || '').replace(/"/g, '&quot;')}" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">
+                    <select data-field="role" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                        <option value="user" ${selectedRole === 'user' ? 'selected' : ''}>Usuário</option>
+                        <option value="admin" ${selectedRole === 'admin' ? 'selected' : ''}>Admin</option>
+                        <option value="blocked" ${selectedRole === 'blocked' ? 'selected' : ''}>Bloqueado</option>
+                    </select>
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">
+                    <input data-field="password" type="password" placeholder="Nova senha" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">
+                    <input data-field="adminPassword" type="password" placeholder="Senha admin" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">
+                    <button class="btn" onclick="saveUser('${user._id}', this)" style="width: auto; margin-top: 0;">Salvar</button>
+                    <button class="btn" onclick="unlockUser('${user._id}', this)" style="width: auto; margin-top: 6px; background: #16a34a;">Desbloquear</button>
+                    <span class="${badgeClass}" style="margin-left: 8px;">${(user.role || 'user').toUpperCase()}</span>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    async function saveUser(userId, button) {
+        const row = button.closest('tr');
+        const nameInput = row.querySelector('input[data-field="name"]');
+        const emailInput = row.querySelector('input[data-field="email"]');
+        const roleSelect = row.querySelector('select[data-field="role"]');
+        const passwordInput = row.querySelector('input[data-field="password"]');
+        const adminPasswordInput = row.querySelector('input[data-field="adminPassword"]');
+
+        button.disabled = true;
+        button.textContent = 'Salvando...';
+
+        try {
+            const payload = {
+                name: nameInput.value.trim(),
+                email: emailInput.value.trim().toLowerCase(),
+                role: roleSelect.value
+            };
+
+            if (passwordInput.value) {
+                payload.password = passwordInput.value;
+            }
+
+            if (roleSelect.value === 'admin') {
+                if (!adminPasswordInput.value) {
+                    alert('Informe a senha do administrador para promover alguém a admin.');
+                    button.disabled = false;
+                    button.textContent = 'Salvar';
+                    return;
+                }
+                payload.adminPassword = adminPasswordInput.value;
+            }
+
+            const response = await fetch(`${API_URL}/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert(data.message || 'Usuário atualizado com sucesso.');
+                await loadUsers();
+            } else {
+                alert(data.error || 'Erro ao atualizar usuário.');
+                button.disabled = false;
+                button.textContent = 'Salvar';
+            }
+        } catch (e) {
+            alert('Erro de comunicação com a API.');
+            button.disabled = false;
+            button.textContent = 'Salvar';
+        }
+    }
+
+    async function unlockUser(userId, button) {
+        const row = button.closest('tr');
+        const nameInput = row.querySelector('input[data-field="name"]');
+        const emailInput = row.querySelector('input[data-field="email"]');
+
+        button.disabled = true;
+        button.textContent = 'Desbloqueando...';
+
+        try {
+            const response = await fetch(`${API_URL}/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: nameInput.value.trim(),
+                    email: emailInput.value.trim().toLowerCase(),
+                    role: 'user'
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert(data.message || 'Usuário desbloqueado com sucesso.');
+                await loadUsers();
+            } else {
+                alert(data.error || 'Erro ao desbloquear usuário.');
+                button.disabled = false;
+                button.textContent = 'Desbloquear';
+            }
+        } catch (e) {
+            alert('Erro de comunicação com a API.');
+            button.disabled = false;
+            button.textContent = 'Desbloquear';
         }
     }
 
@@ -127,6 +253,10 @@
         localStorage.removeItem('currentUser');
         localStorage.removeItem('token');
         window.location.href = 'index.html';
+    }
+
+    if (userData?.role === 'admin') {
+        loadUsers();
     }
 </script>
 </body>
