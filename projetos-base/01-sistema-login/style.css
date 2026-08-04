@@ -96,3 +96,4 @@ body {
     color: #475569; 
 }
 .badge.admin { background: #dcfce7; color: #166534; }
+.badge.blocked { background: #fee2e2; color: #991b1b; }

@@ -21,16 +21,38 @@ const UserSchema = new mongoose.Schema({
     name: String
 });
 const User = mongoose.model('User', UserSchema);
+const VALID_ROLES = ['user', 'admin', 'blocked'];
 
 async function seedDatabase() {
-    const count = await User.countDocuments();
-    if (count === 0) {
-        await User.insertMany([
-            { email: "admin@system.com", password: "AdminPassword123", role: "admin", name: "Administrador" },
-            { email: "user@system.com", password: "UserPassword123", role: "user", name: "Usuário Padrão" },
-            { email: "blocked@system.com", password: "Blocked123", role: "user", name: "Usuário Bloqueado" },
-            { email: "slow@system.com", password: "SlowPass123", role: "user", name: "Usuário Lento" }
-        ]);
+    const defaultUsers = [
+        { email: "admin@system.com", password: "AdminPassword123", role: "admin", name: "Administrador" },
+        { email: "user@system.com", password: "UserPassword123", role: "user", name: "Usuário Padrão" },
+        { email: "blocked@system.com", password: "Blocked123", role: "blocked", name: "Usuário Bloqueado" },
+        { email: "slow@system.com", password: "SlowPass123", role: "user", name: "Usuário Lento" }
+    ];
+
+    for (const userData of defaultUsers) {
+        const existing = await User.findOne({ email: userData.email });
+
+        if (!existing) {
+            await User.create({
+                email: userData.email,
+                password: userData.password,
+                role: userData.role,
+                name: userData.name
+            });
+        } else {
+            await User.updateOne(
+                { _id: existing._id },
+                {
+                    $set: {
+                        password: userData.password,
+                        role: userData.role,
+                        name: userData.name
+                    }
+                }
+            );
+        }
     }
 }
 seedDatabase();
@@ -66,6 +88,7 @@ app.post('/api/login', async (req, res, next) => {
         const user = await User.findOne({ email });
         if (!user) return res.status(404).json({ error: "Erro: usuário não encontrado." });
         if (user.password !== password) return res.status(401).json({ error: "Credenciais inválidas." });
+        if (user.role === 'blocked') return res.status(403).json({ error: "Usuário bloqueado." });
 
         const token = jwt.sign({ id: user._id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
 
@@ -127,6 +150,66 @@ app.get('/api/users', verifyToken, isAdmin, async (req, res, next) => {
     try {
         const users = await User.find({}, '-password');
         res.status(200).json(users);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// 5. ATUALIZAR USUÁRIO (e-mail, nome, senha, role)
+app.put('/api/users/:id', verifyToken, isAdmin, async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { email, role, name, password, adminPassword } = req.body;
+        const update = {};
+
+        if (email !== undefined && email !== '') {
+            update.email = email.trim().toLowerCase();
+        }
+
+        if (name !== undefined) {
+            update.name = name.trim();
+        }
+
+        if (password) {
+            update.password = password;
+        }
+
+        if (role !== undefined) {
+            if (!VALID_ROLES.includes(role)) {
+                return res.status(400).json({ error: "Role inválida. Use user, admin ou blocked." });
+            }
+
+            if (role === 'admin') {
+                const adminUser = await User.findById(req.user.id);
+                if (!adminUser || adminUser.password !== (adminPassword || '')) {
+                    return res.status(401).json({ error: "Senha do administrador inválida para promover alguém a admin." });
+                }
+            }
+
+            update.role = role;
+        }
+
+        if (Object.keys(update).length === 0) {
+            return res.status(400).json({ error: "Nenhuma alteração enviada." });
+        }
+
+        if (update.email) {
+            const existingUser = await User.findOne({ email: update.email });
+            if (existingUser && existingUser._id.toString() !== id) {
+                return res.status(409).json({ error: "Já existe um usuário cadastrado com este e-mail." });
+            }
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(id, update, { new: true, runValidators: true });
+
+        if (!updatedUser) {
+            return res.status(404).json({ error: "Usuário não encontrado." });
+        }
+
+        res.status(200).json({
+            message: "Usuário atualizado com sucesso.",
+            user: { id: updatedUser._id, email: updatedUser.email, role: updatedUser.role, name: updatedUser.name }
+        });
     } catch (error) {
         next(error);
     }
