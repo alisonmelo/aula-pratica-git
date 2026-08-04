@@ -61,6 +61,7 @@
     const API_URL = 'https://api-qa-fap2026.onrender.com/api';
     const userData = JSON.parse(localStorage.getItem('currentUser'));
     const token = localStorage.getItem('token');
+    const TEST_USERS = ['admin@system.com', 'user@system.com', 'blocked@system.com', 'slow@system.com'];
     const state = {
         users: [],
         filteredUsers: [],
@@ -131,8 +132,12 @@
             const badgeClass = user.role === 'admin' ? 'badge admin' : user.role === 'blocked' ? 'badge blocked' : 'badge';
             const selectedRole = user.role || 'user';
             const isBlocked = user.role === 'blocked';
+            const testUsers = ['admin@system.com', 'user@system.com', 'blocked@system.com', 'slow@system.com'];
+            const isTestUser = testUsers.includes((user.email || '').toLowerCase());
+            const disabledAttribute = isTestUser ? 'disabled' : '';
+            const disabledClass = isTestUser ? 'disabled-card' : '';
             return `
-                <article class="user-card">
+                <article class="user-card ${disabledClass}">
                     <button class="user-card-toggle" type="button" onclick="toggleCard(this.closest('.user-card'))">
                         <div>
                             <strong>${(user.name || 'Sem nome').replace(/</g, '&lt;')}</strong>
@@ -144,18 +149,19 @@
                         </div>
                     </button>
                     <div class="user-card-body">
+                        ${isTestUser ? '<div class="user-card-note">Usuário de teste – edição bloqueada. Somente leitura.</div>' : ''}
                         <div class="user-card-grid">
                             <label>
                                 <span>Nome</span>
-                                <input data-field="name" type="text" value="${(user.name || '').replace(/"/g, '&quot;')}" placeholder="Nome">
+                                <input data-field="name" type="text" value="${(user.name || '').replace(/"/g, '&quot;')}" placeholder="Nome" ${disabledAttribute}>
                             </label>
                             <label>
                                 <span>E-mail</span>
-                                <input data-field="email" type="email" value="${(user.email || '').replace(/"/g, '&quot;')}" placeholder="E-mail">
+                                <input data-field="email" type="email" value="${(user.email || '').replace(/"/g, '&quot;')}" placeholder="E-mail" ${disabledAttribute}>
                             </label>
                             <label>
                                 <span>Perfil</span>
-                                <select data-field="role">
+                                <select data-field="role" ${disabledAttribute}>
                                     <option value="user" ${selectedRole === 'user' ? 'selected' : ''}>Usuário</option>
                                     <option value="admin" ${selectedRole === 'admin' ? 'selected' : ''}>Admin</option>
                                     <option value="blocked" ${selectedRole === 'blocked' ? 'selected' : ''}>Bloqueado</option>
@@ -163,16 +169,16 @@
                             </label>
                             <label>
                                 <span>Nova senha</span>
-                                <input data-field="password" type="password" placeholder="Digite a nova senha">
+                                <input data-field="password" type="password" placeholder="Digite a nova senha" ${disabledAttribute}>
                             </label>
                             <label>
                                 <span>Senha do admin</span>
-                                <input data-field="adminPassword" type="password" placeholder="Obrigatória para admin">
+                                <input data-field="adminPassword" type="password" placeholder="Obrigatória para admin" ${disabledAttribute}>
                             </label>
                         </div>
                         <div class="user-card-actions">
-                            <button class="btn btn-small" onclick="saveUser('${user._id}', this)">Salvar</button>
-                            ${isBlocked ? `<button class="btn btn-small btn-success" onclick="unlockUser('${user._id}', this)">Desbloquear</button>` : ''}
+                            <button class="btn btn-small" onclick="saveUser('${user._id}', this)" ${isTestUser ? 'disabled' : ''}>Salvar</button>
+                            ${(!isTestUser && isBlocked) ? `<button class="btn btn-small btn-success" onclick="unlockUser('${user._id}', this)">Desbloquear</button>` : ''}
                         </div>
                     </div>
                 </article>
@@ -229,6 +235,12 @@
         const passwordInput = card.querySelector('input[data-field="password"]');
         const adminPasswordInput = card.querySelector('input[data-field="adminPassword"]');
 
+        const isTestUser = TEST_USERS.includes(emailInput.value.trim().toLowerCase());
+        if (isTestUser) {
+            alert('Este usuário de teste não pode ser alterado.');
+            return;
+        }
+
         button.disabled = true;
         button.textContent = 'Salvando...';
 
@@ -283,6 +295,12 @@
         const card = button.closest('.user-card');
         const nameInput = card.querySelector('input[data-field="name"]');
         const emailInput = card.querySelector('input[data-field="email"]');
+
+        const isTestUser = TEST_USERS.includes(emailInput.value.trim().toLowerCase());
+        if (isTestUser) {
+            alert('Este usuário de teste não pode ser alterado.');
+            return;
+        }
 
         button.disabled = true;
         button.textContent = 'Desbloqueando...';
