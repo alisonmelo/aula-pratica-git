@@ -97,3 +97,165 @@ body {
 }
 .badge.admin { background: #dcfce7; color: #166534; }
 .badge.blocked { background: #fee2e2; color: #991b1b; }
+
+.admin-toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.admin-toolbar input,
+.admin-toolbar select {
+    flex: 1;
+    min-width: 180px;
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+}
+
+.users-summary {
+    font-size: 14px;
+    color: #64748b;
+    margin-bottom: 12px;
+}
+
+.users-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.user-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.user-card-toggle {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fafc;
+    border: 0;
+    padding: 14px 16px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.user-card-email {
+    color: #64748b;
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+.user-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.toggle-icon {
+    transition: transform 0.2s ease;
+    font-size: 16px;
+}
+
+.user-card.is-open .toggle-icon {
+    transform: rotate(90deg);
+}
+
+.user-card-body {
+    display: none;
+    padding: 14px 16px 16px;
+    background: white;
+}
+
+.user-card.is-open .user-card-body {
+    display: block;
+}
+
+.user-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.user-card-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: #334155;
+    font-size: 13px;
+}
+
+.user-card-grid input,
+.user-card-grid select {
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+}
+
+.user-card-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.btn-small {
+    width: auto;
+    padding: 8px 12px;
+    margin-top: 0;
+    font-size: 14px;
+}
+
+.btn-success {
+    background: #16a34a;
+}
+
+.btn-success:hover {
+    background: #15803d;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.pagination-btn {
+    border: 1px solid #cbd5e1;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.pagination-btn[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-info {
+    color: #64748b;
+    font-size: 14px;
+}
+
+.empty-state {
+    padding: 16px;
+    text-align: center;
+    color: #64748b;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+@media (max-width: 700px) {
+    .user-card-grid {
+        grid-template-columns: 1fr;
+    }
+}
