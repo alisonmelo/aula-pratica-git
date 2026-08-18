@@ -144,7 +144,6 @@ async function attemptForgotPassword() {
         const data = await response.json();
 
         if (response.ok) {
-            // A mensagem genérica vem do backend conforme os critérios de aceite
             showInfo(data.message);
             document.getElementById('forgot-email').value = '';
         } else {
