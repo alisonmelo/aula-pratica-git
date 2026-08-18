@@ -144,7 +144,7 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ error: "Usuário e senha são obrigatórios." });
         if (!EMAIL_REGEX.test(email)) return res.status(400).json({ error: "E-mail inválido." });
-        if (password.length < 8 || password.length > 12) return res.status(400).json({ error: "Senha deve ter entre 8 e 12 caracteres." });
+        if (password.length < 8 || password.length > 25) return res.status(400).json({ error: "Senha deve ter entre 8 e 25 caracteres." });
 
         if (email === 'slow@system.com') await new Promise(r => setTimeout(r, 1800));
 
@@ -182,8 +182,8 @@ app.post('/api/register', async (req, res, next) => {
             return res.status(400).json({ error: "E-mail inválido." });
         }
 
-        if (password.length < 8 || password.length > 12) {
-            return res.status(400).json({ error: "A senha deve conter entre 8 e 12 caracteres." });
+        if (password.length < 8 || password.length > 25) {
+            return res.status(400).json({ error: "A senha deve conter entre 8 e 25 caracteres." });
         }
 
         const existingUser = await User.findOne({ email });
@@ -239,8 +239,8 @@ app.post('/api/reset-password', async (req, res, next) => {
             return res.status(400).json({ error: "E-mail inválido." });
         }
 
-        if (password.length < 8 || password.length > 12) {
-            return res.status(400).json({ error: "A senha deve conter entre 8 e 12 caracteres." });
+        if (password.length < 8 || password.length > 25) {
+            return res.status(400).json({ error: "A senha deve conter entre 8 e 25 caracteres." });
         }
 
         const user = await User.findOne({ email: email.trim().toLowerCase(), passwordResetToken: token });

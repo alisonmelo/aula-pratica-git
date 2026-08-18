@@ -11,7 +11,7 @@ function isValidEmail(email) {
 function validateLoginForm() {
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-    const isValid = email && isValidEmail(email) && password.length >= 8 && password.length <= 12;
+    const isValid = email && isValidEmail(email) && password.length >= 8 && password.length <= 25;
     document.getElementById('loginBtn').disabled = !isValid;
 }
 
@@ -19,7 +19,7 @@ function validateRegisterForm() {
     const name = document.getElementById('reg-name').value.trim();
     const email = document.getElementById('reg-email').value.trim();
     const password = document.getElementById('reg-password').value;
-    const isValid = name.length > 0 && name.length <= 50 && isValidEmail(email) && password.length >= 8 && password.length <= 12;
+    const isValid = name.length > 0 && name.length <= 50 && isValidEmail(email) && password.length >= 8 && password.length <= 25;
     document.getElementById('registerBtn').disabled = !isValid;
 }
 
@@ -104,7 +104,7 @@ async function attemptLogin() {
     if (!email || !password) return showError("Usuário e senha são obrigatórios.");
     if (!isValidEmail(email)) return showError("E-mail inválido. Use o formato: usuario@dominio.com");
     if (password.length < 8) return showError("A senha deve conter no mínimo 8 caracteres.");
-    if (password.length > 12) return showError("A senha não pode ter mais de 12 caracteres.");
+    if (password.length > 25) return showError("A senha não pode ter mais de 25 caracteres.");
 
     try {
         const response = await fetch(`${API_URL}/login`, {
@@ -151,7 +151,7 @@ async function attemptRegister() {
     if (name.length > 50) return showError("O nome não pode ter mais de 50 caracteres.");
     if (!isValidEmail(email)) return showError("E-mail inválido. Use o formato: usuario@dominio.com");
     if (password.length < 8) return showError("A senha deve conter no mínimo 8 caracteres.");
-    if (password.length > 12) return showError("A senha não pode ter mais de 12 caracteres.");
+    if (password.length > 25) return showError("A senha não pode ter mais de 25 caracteres.");
 
     try {
         const response = await fetch(`${API_URL}/register`, {
