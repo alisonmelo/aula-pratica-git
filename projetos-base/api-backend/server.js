@@ -5,6 +5,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 app.use(express.json());
@@ -12,6 +13,24 @@ app.use(cors());
 
 const JWT_SECRET = process.env.JWT_SECRET || 'chave_secreta_fap2026_qa';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5500/projetos-base/01-sistema-login';
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// --- RATE LIMITING ---
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 5, // 5 tentativas por IP
+    message: { error: "Muitas tentativas de login. Tente novamente em 15 minutos." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+const forgotPasswordLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hora
+    max: 3, // 3 tentativas por IP
+    message: { error: "Muitas solicitações de recuperação de senha. Tente novamente em 1 hora." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 function createEmailTransport() {
     if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
@@ -120,10 +139,12 @@ const isAdmin = (req, res, next) => {
 // --- ROTAS ---
 
 // 1. LOGIN
-app.post('/api/login', async (req, res, next) => {
+app.post('/api/login', loginLimiter, async (req, res, next) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ error: "Usuário e senha são obrigatórios." });
+        if (!EMAIL_REGEX.test(email)) return res.status(400).json({ error: "E-mail inválido." });
+        if (password.length < 8 || password.length > 12) return res.status(400).json({ error: "Senha deve ter entre 8 e 12 caracteres." });
 
         if (email === 'slow@system.com') await new Promise(r => setTimeout(r, 1800));
 
@@ -153,8 +174,16 @@ app.post('/api/register', async (req, res, next) => {
             return res.status(400).json({ error: "Todos os campos são obrigatórios." });
         }
 
-        if (password.length < 8) {
-            return res.status(400).json({ error: "A senha deve conter no mínimo 8 caracteres." });
+        if (name.length > 50) {
+            return res.status(400).json({ error: "O nome não pode ter mais de 50 caracteres." });
+        }
+
+        if (!EMAIL_REGEX.test(email)) {
+            return res.status(400).json({ error: "E-mail inválido." });
+        }
+
+        if (password.length < 8 || password.length > 12) {
+            return res.status(400).json({ error: "A senha deve conter entre 8 e 12 caracteres." });
         }
 
         const existingUser = await User.findOne({ email });
@@ -172,10 +201,11 @@ app.post('/api/register', async (req, res, next) => {
 });
 
 // 3. RECUPERAÇÃO DE SENHA (Nova Feature)
-app.post('/api/forgot-password', async (req, res, next) => {
+app.post('/api/forgot-password', forgotPasswordLimiter, async (req, res, next) => {
     try {
         const { email } = req.body;
         if (!email) return res.status(400).json({ error: "O e-mail é obrigatório." });
+        if (!EMAIL_REGEX.test(email)) return res.status(400).json({ error: "E-mail inválido." });
 
         const user = await User.findOne({ email: email.trim().toLowerCase() });
         if (user) {
@@ -205,8 +235,12 @@ app.post('/api/reset-password', async (req, res, next) => {
             return res.status(400).json({ error: "E-mail, token e nova senha são obrigatórios." });
         }
 
-        if (password.length < 8) {
-            return res.status(400).json({ error: "A senha deve conter no mínimo 8 caracteres." });
+        if (!EMAIL_REGEX.test(email)) {
+            return res.status(400).json({ error: "E-mail inválido." });
+        }
+
+        if (password.length < 8 || password.length > 12) {
+            return res.status(400).json({ error: "A senha deve conter entre 8 e 12 caracteres." });
         }
 
         const user = await User.findOne({ email: email.trim().toLowerCase(), passwordResetToken: token });

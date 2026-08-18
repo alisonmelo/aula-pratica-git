@@ -9,9 +9,43 @@
 <body>
 
 <script>
-    // Se não estiver autenticado, chuta de volta para o login
-    if (localStorage.getItem('isAuthenticated') !== 'true') {
-        window.location.href = 'index.html';
+    // Route Guard: Validar autenticação de forma segura
+    (async function() {
+        const token = localStorage.getItem('token');
+        const isAuthenticated = localStorage.getItem('isAuthenticated');
+        
+        // Primeira verificação: dados básicos no localStorage
+        if (isAuthenticated !== 'true' || !token) {
+            localStorage.clear();
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        // Segunda verificação: validar token com o backend
+        try {
+            const response = await fetch('https://api-qa-fap2026.onrender.com/api/users', {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (!response.ok || response.status === 401 || response.status === 403) {
+                throw new Error('Token inválido');
+            }
+        } catch (error) {
+            // Token inválido ou expirado
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+    })();
+    
+    // Prevenir navegação para trás após logout
+    if (window.history && window.history.pushState) {
+        window.history.pushState(null, null, window.location.href);
+        window.onpopstate = function() {
+            if (!localStorage.getItem('token')) {
+                window.location.href = 'index.html';
+            }
+        };
     }
 </script>
 
@@ -337,9 +371,11 @@
     }
 
     function logout() {
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('token');
+        // Limpar todas as sessões de forma segura
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Redirecionar para login
         window.location.href = 'index.html';
     }
 
