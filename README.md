@@ -45,6 +45,26 @@ Aqui vamos explorar diversas linguagens de programação, ferramentas e abordage
 
 A ideia é construir um ambiente rico, diversificado e alinhado com as demandas do mercado de tecnologia.
 
+## 🔐 Configuração de ambiente e deploy
+
+Este projeto possui duas camadas distintas:
+
+- Frontend estático: pode ser publicado no GitHub Pages;
+- Backend/API: precisa de variáveis de ambiente, como `.env`, para funcionar corretamente.
+
+Importante: o GitHub Pages não lê arquivos `.env` do navegador, porque ele serve apenas arquivos estáticos. O `.env` do backend é usado pelo Node.js/Express em tempo de execução no servidor da API.
+
+Em outras palavras:
+
+- GitHub Pages: não quebra por não ter `.env` no frontend estático;
+- backend em Render/Node: quebra se faltar o `.env`, porque ele precisa do MongoDB, JWT e SMTP para funcionar.
+
+Além disso, as regras atuais de validação aplicadas ao sistema são:
+
+- Nome: até 50 caracteres;
+- Senha: entre 8 e 12 caracteres;
+- E-mail: validação por regex.
+
 ## 📚 Propósito pedagógico
 
 Este repositório também funciona como um histórico de aprendizagem, registrando tudo o que foi produzido ao longo do curso. Ele pode ser utilizado futuramente como referência para:

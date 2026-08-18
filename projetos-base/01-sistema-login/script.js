@@ -1,6 +1,39 @@
 const MAX_ATTEMPTS = 3;
 const LOCK_TIME_MS = 1 * 60 * 1000; 
-const API_URL = 'https://api-qa-fap2026.onrender.com/api'; 
+const API_URL = 'https://api-qa-fap2026.onrender.com/api';
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// --- FUNÇÕES DE VALIDAÇÃO ---
+function isValidEmail(email) {
+    return EMAIL_REGEX.test(email);
+}
+
+function validateLoginForm() {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const isValid = email && isValidEmail(email) && password.length >= 8 && password.length <= 12;
+    document.getElementById('loginBtn').disabled = !isValid;
+}
+
+function validateRegisterForm() {
+    const name = document.getElementById('reg-name').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const isValid = name.length > 0 && name.length <= 50 && isValidEmail(email) && password.length >= 8 && password.length <= 12;
+    document.getElementById('registerBtn').disabled = !isValid;
+}
+
+function validateForgotForm() {
+    const email = document.getElementById('forgot-email').value.trim();
+    const isValid = isValidEmail(email);
+    document.getElementById('forgotBtn').disabled = !isValid;
+}
+
+function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    input.type = input.type === 'password' ? 'text' : 'password';
+}
+
 // --- FUNÇÕES DE INTERFACE ---
 function toggleSection(sectionId) {
     document.getElementById('section-login').style.display = 'none';
@@ -8,6 +41,19 @@ function toggleSection(sectionId) {
     document.getElementById('section-forgot').style.display = 'none';
     
     document.getElementById(sectionId).style.display = 'block';
+    
+    // Atualizar título dinamicamente
+    switch(sectionId) {
+        case 'section-login':
+            document.title = 'QA System - Login';
+            break;
+        case 'section-register':
+            document.title = 'QA System - Cadastro';
+            break;
+        case 'section-forgot':
+            document.title = 'QA System - Recuperar Senha';
+            break;
+    }
     
     // Limpa mensagens de erro ao trocar de tela
     document.getElementById('errorMessage').style.display = 'none';
@@ -56,7 +102,9 @@ async function attemptLogin() {
 
     if (checkLockStatus(email)) return;
     if (!email || !password) return showError("Usuário e senha são obrigatórios.");
+    if (!isValidEmail(email)) return showError("E-mail inválido. Use o formato: usuario@dominio.com");
     if (password.length < 8) return showError("A senha deve conter no mínimo 8 caracteres.");
+    if (password.length > 12) return showError("A senha não pode ter mais de 12 caracteres.");
 
     try {
         const response = await fetch(`${API_URL}/login`, {
@@ -100,7 +148,10 @@ async function attemptRegister() {
     const password = document.getElementById('reg-password').value;
 
     if (!name || !email || !password) return showError("Todos os campos são obrigatórios.");
+    if (name.length > 50) return showError("O nome não pode ter mais de 50 caracteres.");
+    if (!isValidEmail(email)) return showError("E-mail inválido. Use o formato: usuario@dominio.com");
     if (password.length < 8) return showError("A senha deve conter no mínimo 8 caracteres.");
+    if (password.length > 12) return showError("A senha não pode ter mais de 12 caracteres.");
 
     try {
         const response = await fetch(`${API_URL}/register`, {
@@ -133,6 +184,7 @@ async function attemptForgotPassword() {
     const email = document.getElementById('forgot-email').value.trim().toLowerCase();
 
     if (!email) return showError("O e-mail é obrigatório para recuperação.");
+    if (!isValidEmail(email)) return showError("E-mail inválido. Use o formato: usuario@dominio.com");
 
     try {
         const response = await fetch(`${API_URL}/forgot-password`, {
@@ -154,9 +206,31 @@ async function attemptForgotPassword() {
     }
 }
 
-// Checagem de bloqueio ao carregar
+// Checagem de bloqueio e validação ao carregar
 window.addEventListener('load', () => {
     const emailInput = document.getElementById('email');
-    emailInput.addEventListener('input', () => checkLockStatus(emailInput.value.trim().toLowerCase()));
+    const passwordInput = document.getElementById('password');
+    const regNameInput = document.getElementById('reg-name');
+    const regEmailInput = document.getElementById('reg-email');
+    const regPasswordInput = document.getElementById('reg-password');
+    const forgotEmailInput = document.getElementById('forgot-email');
+    
+    // Login validation
+    emailInput.addEventListener('input', () => {
+        checkLockStatus(emailInput.value.trim().toLowerCase());
+        validateLoginForm();
+    });
+    passwordInput.addEventListener('input', validateLoginForm);
+    
+    // Register validation
+    regNameInput.addEventListener('input', validateRegisterForm);
+    regEmailInput.addEventListener('input', validateRegisterForm);
+    regPasswordInput.addEventListener('input', validateRegisterForm);
+    
+    // Forgot password validation
+    forgotEmailInput.addEventListener('input', validateForgotForm);
+    
+    // Initial validation
     checkLockStatus(emailInput.value.trim().toLowerCase());
+    validateLoginForm();
 });
