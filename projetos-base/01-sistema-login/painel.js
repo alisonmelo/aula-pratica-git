@@ -3,94 +3,680 @@ const token = localStorage.getItem('token');
 const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
 const cartKey = 'lojaqa_cart';
 const PAGE_SIZE = 5;
-const money = value => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-const escapeHtml = value => String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
-const adminState = { users: [], stores: [], products: [], pages: { users: 1, stores: 1, products: 1 } };
 
-if (!token || !user) window.location.replace('login.html');
+const TEST_USERS = ['admin@system.com', 'user@system.com', 'blocked@system.com', 'slow@system.com'];
+
+const money = value => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+const escapeHtml = value => String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
+
+const adminState = { 
+    users: [], 
+    stores: [], 
+    products: [], 
+    pages: { users: 1, stores: 1, products: 1 },
+    currentTab: 'users'
+};
+
+if (!token || !user) {
+    window.location.replace('login.html');
+}
 
 function api(path, options = {}) {
-    return fetch(`${API_URL}${path}`, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(options.headers || {}) } }).then(async response => {
+    return fetch(`${API_URL}${path}`, { 
+        ...options, 
+        headers: { 
+            'Content-Type': 'application/json', 
+            Authorization: `Bearer ${token}`, 
+            ...(options.headers || {}) 
+        } 
+    }).then(async response => {
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || `A API respondeu ${response.status}.`);
+        if (!response.ok) throw new Error(data.error || `A API respondeu com erro ${response.status}.`);
         return data;
     });
 }
 
-function configurePanel() {
-    document.getElementById('userSummary').textContent = `${user.name || user.email} · ${user.role}`;
-    document.getElementById('roleBadge').textContent = user.role.toUpperCase();
-    document.getElementById('panelTitle').textContent = user.role === 'admin' ? 'Central administrativa' : user.role === 'seller' ? 'Painel do lojista' : 'Minha conta';
-    const links = [{ id: 'profileSection', label: 'Perfil' }];
-    if (user.role === 'user') links.push({ id: 'ordersSection', label: 'Meus pedidos' });
-    if (user.role === 'seller') links.push({ id: 'sellerSection', label: 'Minha loja' });
-    if (user.role === 'admin') links.push({ id: 'adminSection', label: 'Administração' });
-    document.getElementById('panelNav').innerHTML = links.map(link => `<a href="#${link.id}">${link.label}</a>`).join('');
-    document.getElementById('profileMetrics').innerHTML = `<article><span>Nome</span><strong>${escapeHtml(user.name || 'Não informado')}</strong></article><article><span>E-mail</span><strong>${escapeHtml(user.email)}</strong></article><article><span>Perfil</span><strong>${user.role}</strong></article>`;
-    if (user.role === 'user') document.getElementById('ordersSection').classList.remove('hidden');
-    if (user.role === 'seller') document.getElementById('sellerSection').classList.remove('hidden');
-    if (user.role === 'admin') document.getElementById('adminSection').classList.remove('hidden');
+function showNotice(message, error = false) {
+    const notice = document.getElementById('notice');
+    if (!notice) return;
+    notice.textContent = message;
+    notice.className = `notice ${error ? 'error' : 'success'}`;
+    setTimeout(() => { notice.className = 'notice'; }, 4000);
 }
 
+function toggleCard(card) {
+    if (card) card.classList.toggle('is-open');
+}
+
+// --- CONFIGURAÇÃO INICIAL DO PAINEL ---
+function configurePanel() {
+    document.getElementById('userSummary').textContent = `${user.name || user.email} · ${user.role.toUpperCase()}`;
+    document.getElementById('roleBadge').textContent = user.role.toUpperCase();
+    document.getElementById('panelTitle').textContent = user.role === 'admin' ? 'Painel Administrativo' : user.role === 'seller' ? 'Painel do Lojista' : 'Minha Conta';
+    
+    const links = [{ id: 'profileSection', label: 'Meu Perfil' }];
+    if (user.role === 'user') links.push({ id: 'ordersSection', label: 'Meus Pedidos' });
+    if (user.role === 'seller') links.push({ id: 'sellerSection', label: 'Minha Loja' });
+    if (user.role === 'admin') links.push({ id: 'adminSection', label: 'Administração' });
+    
+    document.getElementById('panelNav').innerHTML = links.map(link => `<a href="#${link.id}">${link.label}</a>`).join('');
+    
+    document.getElementById('profileMetrics').innerHTML = `
+        <article>
+            <span>Nome Completo</span>
+            <strong>${escapeHtml(user.name || 'Não informado')}</strong>
+        </article>
+        <article>
+            <span>E-mail</span>
+            <strong>${escapeHtml(user.email)}</strong>
+        </article>
+        <article>
+            <span>Perfil de Acesso</span>
+            <strong>${user.role.toUpperCase()}</strong>
+        </article>
+    `;
+    
+    if (user.role === 'user') document.getElementById('ordersSection').classList.remove('hidden');
+    if (user.role === 'seller') document.getElementById('sellerSection').classList.remove('hidden');
+    if (user.role === 'admin') {
+        document.getElementById('adminSection').classList.remove('hidden');
+        loadAdminData();
+    }
+}
+
+// --- PEDIDOS DO CLIENTE ---
 async function loadOrders() {
     try {
         const orders = await api('/orders/me');
-        document.getElementById('ordersList').innerHTML = orders.length ? orders.map(order => `<article class="data-row"><div><strong>Pedido #${order._id.slice(-6).toUpperCase()}</strong><span>${new Date(order.createdAt).toLocaleDateString('pt-BR')} · ${order.items.length} item(ns)</span></div><strong>${money(order.total)}</strong><span class="status">${order.status}</span></article>`).join('') : '<div class="empty">Você ainda não fez pedidos.</div>';
-    } catch (error) { document.getElementById('ordersList').innerHTML = `<div class="empty">${error.message}</div>`; }
+        document.getElementById('ordersList').innerHTML = orders.length 
+            ? orders.map(order => `
+                <article class="data-row">
+                    <div>
+                        <strong>Pedido #${order._id.slice(-6).toUpperCase()}</strong>
+                        <span>${new Date(order.createdAt).toLocaleDateString('pt-BR')} · ${order.items.length} item(ns)</span>
+                    </div>
+                    <strong>${money(order.total)}</strong>
+                    <span class="status">${order.status.toUpperCase()}</span>
+                </article>
+            `).join('') 
+            : '<div class="empty">Você ainda não realizou nenhum pedido.</div>';
+    } catch (error) { 
+        document.getElementById('ordersList').innerHTML = `<div class="empty">${error.message}</div>`; 
+    }
 }
 
 async function submitCheckout(event) {
     event.preventDefault();
     const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
     if (!cart.length) return showNotice('Seu carrinho está vazio.', true);
+    
     try {
-        await api('/orders', { method: 'POST', body: JSON.stringify({ shippingAddress: document.getElementById('shippingAddress').value, items: cart.map(item => ({ productId: item.productId, quantity: item.quantity })) }) });
+        await api('/orders', { 
+            method: 'POST', 
+            body: JSON.stringify({ 
+                shippingAddress: document.getElementById('shippingAddress').value, 
+                items: cart.map(item => ({ productId: item.productId, quantity: item.quantity })) 
+            }) 
+        });
         localStorage.removeItem(cartKey);
         document.getElementById('checkoutSection').classList.add('hidden');
-        showNotice('Pedido criado com sucesso.');
+        showNotice('Pedido criado e confirmado com sucesso!');
         loadOrders();
-    } catch (error) { showNotice(error.message, true); }
+    } catch (error) { 
+        showNotice(error.message, true); 
+    }
 }
 
+// --- PAINEL DO LOJISTA ---
 async function loadSellerData() {
     try {
         const [products, orders] = await Promise.all([api('/seller/products'), api('/seller/orders')]);
         window.sellerProducts = products;
-        document.getElementById('sellerProducts').innerHTML = products.length ? products.map(product => `<article class="data-row"><div><strong>${escapeHtml(product.name)}</strong><span>${escapeHtml(product.category)} · ${product.stock} em estoque</span></div><strong>${money(product.price)}</strong><button class="ghost-button" onclick="editProduct('${product._id}')">Editar</button></article>`).join('') : '<div class="empty">Cadastre o primeiro produto da sua loja.</div>';
-        document.getElementById('sellerOrders').innerHTML = orders.length ? orders.map(order => `<article class="data-row"><div><strong>#${order._id.slice(-6).toUpperCase()}</strong><span>${order.customerId?.name || order.customerId?.email || 'Cliente'}</span></div><strong>${money(order.total)}</strong><span class="status">${order.status}</span></article>`).join('') : '<div class="empty">Nenhum pedido para sua loja.</div>';
-    } catch (error) { showNotice(error.message, true); }
+        
+        document.getElementById('sellerProducts').innerHTML = products.length 
+            ? products.map(product => `
+                <article class="data-row">
+                    <div>
+                        <strong>${escapeHtml(product.name)}</strong>
+                        <span>${escapeHtml(product.category)} · ${product.stock} em estoque</span>
+                    </div>
+                    <strong>${money(product.price)}</strong>
+                    <button class="ghost-button" onclick="editProduct('${product._id}')">Editar</button>
+                </article>
+            `).join('') 
+            : '<div class="empty">Cadastre o primeiro produto da sua loja.</div>';
+            
+        document.getElementById('sellerOrders').innerHTML = orders.length 
+            ? orders.map(order => `
+                <article class="data-row">
+                    <div>
+                        <strong>#${order._id.slice(-6).toUpperCase()}</strong>
+                        <span>${escapeHtml(order.customerId?.name || order.customerId?.email || 'Cliente')}</span>
+                    </div>
+                    <strong>${money(order.total)}</strong>
+                    <span class="status">${order.status.toUpperCase()}</span>
+                </article>
+            `).join('') 
+            : '<div class="empty">Nenhum pedido recebido para sua loja até o momento.</div>';
+    } catch (error) { 
+        showNotice(error.message, true); 
+    }
 }
 
-function resetProductForm() { document.getElementById('productForm').reset(); document.getElementById('productId').value = ''; document.getElementById('productForm').classList.add('hidden'); }
-function editProduct(id) { const product = window.sellerProducts.find(item => item._id === id); if (!product) return; document.getElementById('productForm').classList.remove('hidden'); document.getElementById('productId').value = product._id; document.getElementById('productName').value = product.name; document.getElementById('productCategory').value = product.category; document.getElementById('productPrice').value = product.price; document.getElementById('productStock').value = product.stock; document.getElementById('productDescription').value = product.description || ''; document.getElementById('productImage').value = product.image || ''; }
-async function saveProduct(event) { event.preventDefault(); const id = document.getElementById('productId').value; const body = { name: document.getElementById('productName').value, category: document.getElementById('productCategory').value, price: document.getElementById('productPrice').value, stock: document.getElementById('productStock').value, description: document.getElementById('productDescription').value, image: document.getElementById('productImage').value }; try { await api(id ? `/seller/products/${id}` : '/seller/products', { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) }); resetProductForm(); loadSellerData(); showNotice('Produto salvo com sucesso.'); } catch (error) { showNotice(error.message, true); } }
+function resetProductForm() { 
+    document.getElementById('productForm').reset(); 
+    document.getElementById('productId').value = ''; 
+    document.getElementById('productForm').classList.add('hidden'); 
+}
 
-function filteredUsers() { const query = document.getElementById('adminUserSearch').value.toLowerCase(); const role = document.getElementById('adminUserRole').value; return adminState.users.filter(item => (!query || `${item.name || ''} ${item.email}`.toLowerCase().includes(query)) && (role === 'all' || item.role === role)); }
-function filteredStores() { const query = document.getElementById('storeSearch').value.toLowerCase(); const status = document.getElementById('storeStatus').value; return adminState.stores.filter(item => (!query || `${item.name || ''} ${item.email} ${item.storeName || ''}`.toLowerCase().includes(query)) && (status === 'all' || (status === 'blocked' ? item.role === 'blocked' : item.role === 'seller'))); }
-function filteredProducts() { const query = document.getElementById('productSearch').value.toLowerCase(); const category = document.getElementById('productCategoryFilter').value; const stock = document.getElementById('productStockFilter').value; return adminState.products.filter(item => (!query || `${item.name} ${item.category} ${item.sellerId?.storeName || ''}`.toLowerCase().includes(query)) && (category === 'all' || item.category === category) && (stock === 'all' || (stock === 'empty' ? item.stock === 0 : item.stock > 0))); }
-function renderPagination(id, total, page, key, render) { const pages = Math.max(1, Math.ceil(total / PAGE_SIZE)); adminState.pages[key] = Math.min(page, pages); document.getElementById(id).innerHTML = pages > 1 ? `<button class="pagination-btn" ${page === 1 ? 'disabled' : ''} onclick="${render.name}(${page - 1})">Anterior</button><span>Página ${page} de ${pages}</span><button class="pagination-btn" ${page === pages ? 'disabled' : ''} onclick="${render.name}(${page + 1})">Próxima</button>` : ''; }
-function renderUsers(page = adminState.pages.users) { const items = filteredUsers(); const start = (page - 1) * PAGE_SIZE; document.getElementById('adminUsers').innerHTML = items.slice(start, start + PAGE_SIZE).map(item => `<article class="data-row admin-row"><div><strong>${escapeHtml(item.name || 'Sem nome')}</strong><span>${escapeHtml(item.email)} · ${item.role}</span></div><select onchange="changeUserRole('${item._id}', this.value)"><option value="user" ${item.role === 'user' ? 'selected' : ''}>Cliente</option><option value="seller" ${item.role === 'seller' ? 'selected' : ''}>Lojista</option><option value="admin" ${item.role === 'admin' ? 'selected' : ''}>Admin</option><option value="blocked" ${item.role === 'blocked' ? 'selected' : ''}>Bloqueado</option></select></article>`).join('') || '<div class="empty">Nenhum usuário encontrado.</div>'; renderPagination('adminUserPagination', items.length, page, 'users', renderUsers); }
-function renderStores(page = adminState.pages.stores) { const items = filteredStores(); const start = (page - 1) * PAGE_SIZE; document.getElementById('adminStores').innerHTML = items.slice(start, start + PAGE_SIZE).map(item => `<article class="data-row"><div><strong>${escapeHtml(item.storeName || 'Loja sem nome')}</strong><span>${escapeHtml(item.name || '')} · ${escapeHtml(item.email)}</span></div><span class="status">${item.role === 'blocked' ? 'bloqueada' : 'ativa'}</span></article>`).join('') || '<div class="empty">Nenhuma loja encontrada.</div>'; renderPagination('storePagination', items.length, page, 'stores', renderStores); }
-function renderProducts(page = adminState.pages.products) { const items = filteredProducts(); const start = (page - 1) * PAGE_SIZE; document.getElementById('adminProducts').innerHTML = items.slice(start, start + PAGE_SIZE).map(item => `<article class="data-row admin-row"><div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.category)} · ${item.stock} em estoque · ${escapeHtml(item.sellerId?.storeName || 'Loja')}</span></div><strong>${money(item.price)}</strong><button class="ghost-button" onclick="editAdminProduct('${item._id}')">Editar</button></article>`).join('') || '<div class="empty">Nenhum produto encontrado.</div>'; renderPagination('productPagination', items.length, page, 'products', renderProducts); }
+function editProduct(id) { 
+    const product = window.sellerProducts.find(item => item._id === id); 
+    if (!product) return; 
+    document.getElementById('productForm').classList.remove('hidden'); 
+    document.getElementById('productId').value = product._id; 
+    document.getElementById('productName').value = product.name; 
+    document.getElementById('productCategory').value = product.category; 
+    document.getElementById('productPrice').value = product.price; 
+    document.getElementById('productStock').value = product.stock; 
+    document.getElementById('productDescription').value = product.description || ''; 
+    document.getElementById('productImage').value = product.image || ''; 
+}
 
-async function openAdminModule(module) { const article = document.querySelector(`[data-module="${module}"]`); const content = article.querySelector('.module-content'); const button = article.querySelector('.module-toggle'); const opening = content.classList.contains('hidden'); document.querySelectorAll('.admin-module .module-content').forEach(item => item.classList.add('hidden')); document.querySelectorAll('.module-toggle').forEach(item => { item.setAttribute('aria-expanded', 'false'); item.querySelector('.module-icon').textContent = '+'; }); if (!opening) return; content.classList.remove('hidden'); button.setAttribute('aria-expanded', 'true'); button.querySelector('.module-icon').textContent = '−'; try { if (module === 'users' && !adminState.users.length) { adminState.users = await api('/users'); adminState.stores = adminState.users.filter(item => item.role === 'seller' || item.role === 'blocked'); } if (module === 'stores' && !adminState.users.length) { adminState.users = await api('/users'); adminState.stores = adminState.users.filter(item => item.role === 'seller' || item.role === 'blocked'); } if (module === 'products' && !adminState.products.length) { adminState.products = await api('/seller/products'); const categories = [...new Set(adminState.products.map(item => item.category))].sort(); document.getElementById('productCategoryFilter').innerHTML = '<option value="all">Todas as categorias</option>' + categories.map(item => `<option value="${escapeHtml(item)}">${escapeHtml(item)}</option>`).join(''); } if (module === 'users') renderUsers(); if (module === 'stores') renderStores(); if (module === 'products') renderProducts(); } catch (error) { content.querySelector('.data-list').innerHTML = `<div class="empty">${error.message}</div>`; } }
-async function changeUserRole(id, role) { const password = prompt(`Digite a senha atual do administrador para definir o perfil ${role}:`); if (!password) return; try { await api(`/users/${id}`, { method: 'PUT', body: JSON.stringify({ role, adminPassword: password }) }); adminState.users = await api('/users'); adminState.stores = adminState.users.filter(item => item.role === 'seller' || item.role === 'blocked'); renderUsers(); renderStores(); showNotice('Perfil atualizado.'); } catch (error) { showNotice(error.message, true); } }
-function editAdminProduct(id) { const product = adminState.products.find(item => item._id === id); if (!product) return showNotice('Produto não carregado.', true); const price = prompt(`Novo preço para ${product.name}:`, product.price); if (price === null) return; const stock = prompt('Novo estoque:', product.stock); if (stock === null) return; api(`/seller/products/${id}`, { method: 'PUT', body: JSON.stringify({ price: Number(price), stock: Number(stock) }) }).then(() => { adminState.products = []; openAdminModule('products'); showNotice('Produto atualizado.'); }).catch(error => showNotice(error.message, true)); }
-function showNotice(message, error = false) { const notice = document.getElementById('notice'); notice.textContent = message; notice.className = `notice ${error ? 'error' : 'success'}`; setTimeout(() => notice.className = 'notice', 3000); }
+async function saveProduct(event) { 
+    event.preventDefault(); 
+    const id = document.getElementById('productId').value; 
+    const body = { 
+        name: document.getElementById('productName').value, 
+        category: document.getElementById('productCategory').value, 
+        price: Number(document.getElementById('productPrice').value), 
+        stock: Number(document.getElementById('productStock').value), 
+        description: document.getElementById('productDescription').value, 
+        image: document.getElementById('productImage').value 
+    }; 
+    
+    try { 
+        await api(id ? `/seller/products/${id}` : '/seller/products', { 
+            method: id ? 'PUT' : 'POST', 
+            body: JSON.stringify(body) 
+        }); 
+        resetProductForm(); 
+        loadSellerData(); 
+        showNotice('Produto salvo com sucesso!'); 
+    } catch (error) { 
+        showNotice(error.message, true); 
+    } 
+}
 
-document.getElementById('logoutButton').addEventListener('click', () => { localStorage.clear(); sessionStorage.clear(); window.location.replace('loja.html'); });
+// ========================================================
+// --- MÓDULO ADMINISTRATIVO (ESTILO DASHBOARD ANTERIOR) ---
+// ========================================================
+
+async function loadAdminData() {
+    try {
+        const [users, products] = await Promise.all([
+            api('/users'),
+            api('/seller/products')
+        ]);
+        
+        adminState.users = users;
+        adminState.stores = users.filter(item => item.role === 'seller' || (item.storeName && item.storeName.trim()));
+        adminState.products = products;
+        
+        document.getElementById('userCountBadge').textContent = adminState.users.length;
+        document.getElementById('storeCountBadge').textContent = adminState.stores.length;
+        document.getElementById('productCountBadge').textContent = adminState.products.length;
+        
+        const categories = [...new Set(adminState.products.map(item => item.category).filter(Boolean))].sort();
+        const catSelect = document.getElementById('productCategoryFilter');
+        if (catSelect) {
+            catSelect.innerHTML = '<option value="all">Todas as categorias</option>' + categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join('');
+        }
+        
+        renderUsers(1);
+        renderStores(1);
+        renderProducts(1);
+    } catch (error) {
+        showNotice('Erro ao carregar dados administrativos: ' + error.message, true);
+    }
+}
+
+function switchAdminTab(tabName) {
+    adminState.currentTab = tabName;
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === tabName);
+    });
+    
+    document.getElementById('adminTabUsers').classList.toggle('hidden', tabName !== 'users');
+    document.getElementById('adminTabStores').classList.toggle('hidden', tabName !== 'stores');
+    document.getElementById('adminTabProducts').classList.toggle('hidden', tabName !== 'products');
+    
+    if (tabName === 'users') renderUsers();
+    if (tabName === 'stores') renderStores();
+    if (tabName === 'products') renderProducts();
+}
+
+function renderPagination(id, total, page, key, renderFunc) {
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    adminState.pages[key] = Math.min(page, pages);
+    const container = document.getElementById(id);
+    if (!container) return;
+    
+    if (pages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    container.innerHTML = `
+        <button class="pagination-btn" ${page === 1 ? 'disabled' : ''} onclick="${renderFunc.name}(${page - 1})">← Anterior</button>
+        <span>Página <strong>${page}</strong> de <strong>${pages}</strong></span>
+        <button class="pagination-btn" ${page === pages ? 'disabled' : ''} onclick="${renderFunc.name}(${page + 1})">Próxima →</button>
+    `;
+}
+
+// 1. ABA DE USUÁRIOS
+function filteredUsers() { 
+    const query = document.getElementById('adminUserSearch').value.toLowerCase().trim(); 
+    const role = document.getElementById('adminUserRole').value; 
+    return adminState.users.filter(item => {
+        const matchesQuery = !query || `${item.name || ''} ${item.email || ''} ${item.storeName || ''}`.toLowerCase().includes(query);
+        const matchesRole = role === 'all' || item.role === role;
+        return matchesQuery && matchesRole;
+    }); 
+}
+
+function renderUsers(page = adminState.pages.users) {
+    const items = filteredUsers();
+    const start = (page - 1) * PAGE_SIZE;
+    const pageItems = items.slice(start, start + PAGE_SIZE);
+    
+    document.getElementById('adminUsersSummary').textContent = `${items.length} usuário(s) encontrado(s)`;
+    document.getElementById('userCountBadge').textContent = adminState.users.length;
+    
+    if (!pageItems.length) {
+        document.getElementById('adminUsersList').innerHTML = '<div class="empty">Nenhum usuário encontrado para os filtros selecionados.</div>';
+        renderPagination('adminUserPagination', items.length, page, 'users', renderUsers);
+        return;
+    }
+    
+    document.getElementById('adminUsersList').innerHTML = pageItems.map(userItem => {
+        const badgeClass = userItem.role === 'admin' ? 'badge admin' : userItem.role === 'blocked' ? 'badge blocked' : userItem.role === 'seller' ? 'badge seller' : 'badge user';
+        const roleLabel = userItem.role === 'admin' ? 'ADMIN' : userItem.role === 'seller' ? 'LOJISTA' : userItem.role === 'blocked' ? 'BLOQUEADO' : 'CLIENTE';
+        const selectedRole = userItem.role || 'user';
+        const isBlocked = userItem.role === 'blocked';
+        const isTestUser = TEST_USERS.includes((userItem.email || '').toLowerCase());
+        const disabledAttribute = isTestUser ? 'disabled' : '';
+        const disabledClass = isTestUser ? 'disabled-card' : '';
+        
+        return `
+            <article class="user-card ${disabledClass}">
+                <button class="user-card-toggle" type="button" onclick="toggleCard(this.closest('.user-card'))">
+                    <div>
+                        <strong>${escapeHtml(userItem.name || 'Sem nome')}</strong>
+                        <div class="user-card-email">${escapeHtml(userItem.email || '-')}</div>
+                    </div>
+                    <div class="user-card-meta">
+                        <span class="${badgeClass}">${roleLabel}</span>
+                        <span class="toggle-icon">▸</span>
+                    </div>
+                </button>
+                <div class="user-card-body">
+                    ${isTestUser ? '<div class="user-card-note">⚠️ Usuário de teste – edição desabilitada para preservação de massa de testes de QA.</div>' : ''}
+                    <div class="user-card-grid">
+                        <label>
+                            <span>Nome completo</span>
+                            <input data-field="name" type="text" value="${escapeHtml(userItem.name || '')}" placeholder="Nome" ${disabledAttribute}>
+                        </label>
+                        <label>
+                            <span>E-mail</span>
+                            <input data-field="email" type="email" value="${escapeHtml(userItem.email || '')}" placeholder="E-mail" ${disabledAttribute}>
+                        </label>
+                        <label>
+                            <span>Perfil de acesso</span>
+                            <select data-field="role" ${disabledAttribute}>
+                                <option value="user" ${selectedRole === 'user' ? 'selected' : ''}>Cliente</option>
+                                <option value="seller" ${selectedRole === 'seller' ? 'selected' : ''}>Lojista</option>
+                                <option value="admin" ${selectedRole === 'admin' ? 'selected' : ''}>Administrador</option>
+                                <option value="blocked" ${selectedRole === 'blocked' ? 'selected' : ''}>Bloqueado</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Nome da loja</span>
+                            <input data-field="storeName" type="text" value="${escapeHtml(userItem.storeName || '')}" placeholder="Ex.: Minha Tech Store" ${disabledAttribute}>
+                        </label>
+                        <label>
+                            <span>Nova senha do usuário</span>
+                            <input data-field="password" type="password" placeholder="Preencha apenas para alterar" ${disabledAttribute}>
+                        </label>
+                        <label>
+                            <span>Sua senha de administrador</span>
+                            <input data-field="adminPassword" type="password" placeholder="Necessária para promover a Admin ou Lojista" ${disabledAttribute}>
+                        </label>
+                    </div>
+                    <div class="user-card-actions">
+                        <button class="primary-button btn-small" type="button" onclick="saveAdminUser('${userItem._id}', this)" ${isTestUser ? 'disabled' : ''}>Salvar Alterações</button>
+                        ${(!isTestUser && isBlocked) ? `<button class="primary-button btn-small btn-success" type="button" onclick="unlockAdminUser('${userItem._id}', this)">Desbloquear Conta</button>` : ''}
+                    </div>
+                </div>
+            </article>
+        `;
+    }).join('');
+    
+    renderPagination('adminUserPagination', items.length, page, 'users', renderUsers);
+}
+
+async function saveAdminUser(userId, button) {
+    const card = button.closest('.user-card');
+    const nameInput = card.querySelector('input[data-field="name"]');
+    const emailInput = card.querySelector('input[data-field="email"]');
+    const roleSelect = card.querySelector('select[data-field="role"]');
+    const storeNameInput = card.querySelector('input[data-field="storeName"]');
+    const passwordInput = card.querySelector('input[data-field="password"]');
+    const adminPasswordInput = card.querySelector('input[data-field="adminPassword"]');
+    
+    const email = emailInput.value.trim().toLowerCase();
+    if (TEST_USERS.includes(email)) {
+        showNotice('Este usuário de teste não pode ser alterado.', true);
+        return;
+    }
+    
+    const role = roleSelect.value;
+    const adminPassword = adminPasswordInput.value;
+    
+    if ((role === 'admin' || role === 'seller') && !adminPassword) {
+        showNotice('Informe a senha do administrador para salvar o perfil de Admin ou Lojista.', true);
+        adminPasswordInput.focus();
+        return;
+    }
+    
+    button.disabled = true;
+    button.textContent = 'Salvando...';
+    
+    try {
+        const payload = {
+            name: nameInput.value.trim(),
+            email: email,
+            role: role,
+            storeName: storeNameInput ? storeNameInput.value.trim() : ''
+        };
+        
+        if (passwordInput.value) {
+            payload.password = passwordInput.value;
+        }
+        
+        if (adminPassword) {
+            payload.adminPassword = adminPassword;
+        }
+        
+        const response = await api(`/users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        });
+        
+        showNotice(response.message || 'Usuário atualizado com sucesso!');
+        adminState.users = await api('/users');
+        adminState.stores = adminState.users.filter(item => item.role === 'seller' || (item.storeName && item.storeName.trim()));
+        renderUsers();
+        renderStores();
+    } catch (error) {
+        showNotice(error.message, true);
+    } finally {
+        button.disabled = false;
+        button.textContent = 'Salvar Alterações';
+    }
+}
+
+async function unlockAdminUser(userId, button) {
+    const card = button.closest('.user-card');
+    const nameInput = card.querySelector('input[data-field="name"]');
+    const emailInput = card.querySelector('input[data-field="email"]');
+    
+    button.disabled = true;
+    button.textContent = 'Desbloqueando...';
+    
+    try {
+        await api(`/users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                name: nameInput.value.trim(),
+                email: emailInput.value.trim().toLowerCase(),
+                role: 'user'
+            })
+        });
+        
+        showNotice('Usuário desbloqueado com sucesso!');
+        adminState.users = await api('/users');
+        adminState.stores = adminState.users.filter(item => item.role === 'seller' || (item.storeName && item.storeName.trim()));
+        renderUsers();
+        renderStores();
+    } catch (error) {
+        showNotice(error.message, true);
+    } finally {
+        button.disabled = false;
+        button.textContent = 'Desbloquear Conta';
+    }
+}
+
+// 2. ABA DE LOJAS
+function filteredStores() { 
+    const query = document.getElementById('storeSearch').value.toLowerCase().trim(); 
+    const status = document.getElementById('storeStatus').value; 
+    return adminState.stores.filter(item => {
+        const matchesQuery = !query || `${item.name || ''} ${item.email || ''} ${item.storeName || ''}`.toLowerCase().includes(query);
+        const matchesStatus = status === 'all' || (status === 'blocked' ? item.role === 'blocked' : item.role === 'seller');
+        return matchesQuery && matchesStatus;
+    }); 
+}
+
+function renderStores(page = adminState.pages.stores) {
+    const items = filteredStores();
+    const start = (page - 1) * PAGE_SIZE;
+    const pageItems = items.slice(start, start + PAGE_SIZE);
+    
+    document.getElementById('adminStoresSummary').textContent = `${items.length} loja(s) encontrada(s)`;
+    document.getElementById('storeCountBadge').textContent = adminState.stores.length;
+    
+    if (!pageItems.length) {
+        document.getElementById('adminStoresList').innerHTML = '<div class="empty">Nenhuma loja encontrada para os filtros selecionados.</div>';
+        renderPagination('storePagination', items.length, page, 'stores', renderStores);
+        return;
+    }
+    
+    document.getElementById('adminStoresList').innerHTML = pageItems.map(store => {
+        const isBlocked = store.role === 'blocked';
+        const badgeClass = isBlocked ? 'badge blocked' : 'badge seller';
+        const statusLabel = isBlocked ? 'BLOQUEADA' : 'ATIVA';
+        
+        return `
+            <article class="user-card">
+                <button class="user-card-toggle" type="button" onclick="toggleCard(this.closest('.user-card'))">
+                    <div>
+                        <strong>🏪 ${escapeHtml(store.storeName || 'Loja sem nome')}</strong>
+                        <div class="user-card-email">Responsável: ${escapeHtml(store.name || 'Sem nome')} (${escapeHtml(store.email)})</div>
+                    </div>
+                    <div class="user-card-meta">
+                        <span class="${badgeClass}">${statusLabel}</span>
+                        <span class="toggle-icon">▸</span>
+                    </div>
+                </button>
+                <div class="user-card-body">
+                    <div class="user-card-grid">
+                        <label>
+                            <span>Nome da loja</span>
+                            <input data-field="storeName" type="text" value="${escapeHtml(store.storeName || '')}" placeholder="Nome comercial">
+                        </label>
+                        <label>
+                            <span>Responsável</span>
+                            <input data-field="name" type="text" value="${escapeHtml(store.name || '')}" placeholder="Nome do proprietário">
+                        </label>
+                        <label>
+                            <span>E-mail de contato</span>
+                            <input data-field="email" type="email" value="${escapeHtml(store.email || '')}" placeholder="E-mail">
+                        </label>
+                        <label>
+                            <span>Status da loja</span>
+                            <select data-field="role">
+                                <option value="seller" ${store.role === 'seller' ? 'selected' : ''}>Ativa (Lojista)</option>
+                                <option value="blocked" ${store.role === 'blocked' ? 'selected' : ''}>Bloqueada</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="user-card-actions">
+                        <button class="primary-button btn-small" type="button" onclick="saveAdminUser('${store._id}', this)">Salvar Loja</button>
+                    </div>
+                </div>
+            </article>
+        `;
+    }).join('');
+    
+    renderPagination('storePagination', items.length, page, 'stores', renderStores);
+}
+
+// 3. ABA DE PRODUTOS
+function filteredProducts() { 
+    const query = document.getElementById('productSearch').value.toLowerCase().trim(); 
+    const category = document.getElementById('productCategoryFilter').value; 
+    const stock = document.getElementById('productStockFilter').value; 
+    return adminState.products.filter(item => {
+        const matchesQuery = !query || `${item.name || ''} ${item.category || ''} ${item.sellerId?.storeName || ''}`.toLowerCase().includes(query);
+        const matchesCategory = category === 'all' || item.category === category;
+        const matchesStock = stock === 'all' || (stock === 'empty' ? item.stock === 0 : item.stock > 0);
+        return matchesQuery && matchesCategory && matchesStock;
+    }); 
+}
+
+function renderProducts(page = adminState.pages.products) {
+    const items = filteredProducts();
+    const start = (page - 1) * PAGE_SIZE;
+    const pageItems = items.slice(start, start + PAGE_SIZE);
+    
+    document.getElementById('adminProductsSummary').textContent = `${items.length} produto(s) encontrado(s)`;
+    document.getElementById('productCountBadge').textContent = adminState.products.length;
+    
+    if (!pageItems.length) {
+        document.getElementById('adminProductsList').innerHTML = '<div class="empty">Nenhum produto encontrado para os filtros selecionados.</div>';
+        renderPagination('productPagination', items.length, page, 'products', renderProducts);
+        return;
+    }
+    
+    document.getElementById('adminProductsList').innerHTML = pageItems.map(product => {
+        const stockBadge = product.stock > 0 ? `<span class="badge admin">${product.stock} em estoque</span>` : `<span class="badge blocked">Esgotado</span>`;
+        
+        return `
+            <article class="user-card">
+                <button class="user-card-toggle" type="button" onclick="toggleCard(this.closest('.user-card'))">
+                    <div>
+                        <strong>📦 ${escapeHtml(product.name)}</strong>
+                        <div class="user-card-email">${escapeHtml(product.category)} · Loja: ${escapeHtml(product.sellerId?.storeName || 'Oficial')} · <strong>${money(product.price)}</strong></div>
+                    </div>
+                    <div class="user-card-meta">
+                        ${stockBadge}
+                        <span class="toggle-icon">▸</span>
+                    </div>
+                </button>
+                <div class="user-card-body">
+                    <div class="user-card-grid">
+                        <label>
+                            <span>Nome do produto</span>
+                            <input data-field="name" type="text" value="${escapeHtml(product.name)}">
+                        </label>
+                        <label>
+                            <span>Categoria</span>
+                            <input data-field="category" type="text" value="${escapeHtml(product.category)}">
+                        </label>
+                        <label>
+                            <span>Preço (R$)</span>
+                            <input data-field="price" type="number" step="0.01" min="0" value="${product.price}">
+                        </label>
+                        <label>
+                            <span>Quantidade em Estoque</span>
+                            <input data-field="stock" type="number" min="0" step="1" value="${product.stock}">
+                        </label>
+                        <label style="grid-column: 1 / -1;">
+                            <span>URL da imagem</span>
+                            <input data-field="image" type="url" value="${escapeHtml(product.image || '')}" placeholder="https://exemplo.com/imagem.jpg">
+                        </label>
+                        <label style="grid-column: 1 / -1;">
+                            <span>Descrição do produto</span>
+                            <textarea data-field="description" rows="3">${escapeHtml(product.description || '')}</textarea>
+                        </label>
+                    </div>
+                    <div class="user-card-actions">
+                        <button class="primary-button btn-small" type="button" onclick="saveAdminProduct('${product._id}', this)">Salvar Produto</button>
+                    </div>
+                </div>
+            </article>
+        `;
+    }).join('');
+    
+    renderPagination('productPagination', items.length, page, 'products', renderProducts);
+}
+
+async function saveAdminProduct(productId, button) {
+    const card = button.closest('.user-card');
+    const name = card.querySelector('input[data-field="name"]').value.trim();
+    const category = card.querySelector('input[data-field="category"]').value.trim();
+    const price = Number(card.querySelector('input[data-field="price"]').value);
+    const stock = Number(card.querySelector('input[data-field="stock"]').value);
+    const image = card.querySelector('input[data-field="image"]').value.trim();
+    const description = card.querySelector('textarea[data-field="description"]').value.trim();
+    
+    if (!name || !category || isNaN(price) || price < 0 || isNaN(stock) || stock < 0) {
+        showNotice('Preencha os campos obrigatórios com valores válidos.', true);
+        return;
+    }
+    
+    button.disabled = true;
+    button.textContent = 'Salvando...';
+    
+    try {
+        await api(`/seller/products/${productId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ name, category, price, stock, image, description })
+        });
+        
+        showNotice('Produto atualizado com sucesso!');
+        adminState.products = await api('/seller/products');
+        renderProducts();
+    } catch (error) {
+        showNotice(error.message, true);
+    } finally {
+        button.disabled = false;
+        button.textContent = 'Salvar Produto';
+    }
+}
+
+// --- EVENT LISTENERS ---
+document.getElementById('logoutButton').addEventListener('click', () => { 
+    localStorage.clear(); 
+    sessionStorage.clear(); 
+    window.location.replace('loja.html'); 
+});
+
 document.getElementById('checkoutForm').addEventListener('submit', submitCheckout);
 document.getElementById('newProductButton').addEventListener('click', () => document.getElementById('productForm').classList.remove('hidden'));
 document.getElementById('cancelProductButton').addEventListener('click', resetProductForm);
 document.getElementById('productForm').addEventListener('submit', saveProduct);
-document.querySelectorAll('.module-toggle').forEach(button => button.addEventListener('click', () => openAdminModule(button.closest('.admin-module').dataset.module)));
-['adminUserSearch', 'adminUserRole'].forEach(id => document.getElementById(id).addEventListener('input', () => renderUsers(1)));
-['storeSearch', 'storeStatus'].forEach(id => document.getElementById(id).addEventListener('input', () => renderStores(1)));
-['productSearch', 'productCategoryFilter', 'productStockFilter'].forEach(id => document.getElementById(id).addEventListener('input', () => renderProducts(1)));
+
+// Filtros em tempo real
+['adminUserSearch', 'adminUserRole'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => renderUsers(1));
+});
+
+['storeSearch', 'storeStatus'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => renderStores(1));
+});
+
+['productSearch', 'productCategoryFilter', 'productStockFilter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => renderProducts(1));
+});
+
+// Inicialização
 configurePanel();
 if (user.role === 'user') loadOrders();
 if (user.role === 'seller') loadSellerData();
-if (user.role === 'admin' && window.location.hash === '#admin-users') openAdminModule('users');
-if (user.role === 'admin' && window.location.hash === '#admin-stores') openAdminModule('stores');
-if (user.role === 'admin' && window.location.hash === '#admin-products') openAdminModule('products');
-if (user.role === 'user' && window.location.hash === '#checkout') document.getElementById('checkoutSection').classList.remove('hidden');
+if (user.role === 'user' && window.location.hash === '#checkout') {
+    document.getElementById('checkoutSection').classList.remove('hidden');
+}
