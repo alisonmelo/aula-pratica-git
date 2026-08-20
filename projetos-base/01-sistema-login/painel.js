@@ -9,6 +9,20 @@ const TEST_USERS = ['admin@system.com', 'user@system.com', 'blocked@system.com',
 const money = value => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 const escapeHtml = value => String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
 
+// --- FORMATADORES DE ID PERSONALIZÁVEIS ---
+// Você pode alterar os prefixos ('PRD-', 'PED-') ou a lógica dos IDs aqui:
+const formatProductId = id => {
+    if (!id) return 'PRD-00000';
+    const num = Math.abs(parseInt(String(id).slice(-6), 16) % 90000) + 10000;
+    return `PRD-${num}`;
+};
+
+const formatOrderId = id => {
+    if (!id) return 'PED-00000';
+    const num = Math.abs(parseInt(String(id).slice(-6), 16) % 90000) + 10000;
+    return `PED-${num}`;
+};
+
 const adminState = { 
     users: [], 
     stores: [], 
@@ -92,8 +106,8 @@ async function loadOrders() {
             ? orders.map(order => `
                 <article class="data-row">
                     <div>
-                        <strong>Pedido #${order._id.slice(-6).toUpperCase()}</strong>
-                        <span>${new Date(order.createdAt).toLocaleDateString('pt-BR')} · ${order.items.length} item(ns)</span>
+                        <strong>Pedido ${formatOrderId(order._id)}</strong>
+                        <span>${new Date(order.createdAt).toLocaleDateString('pt-BR')} · ${order.items.length} item(ns) · ID: <code>${order._id}</code></span>
                     </div>
                     <strong>${money(order.total)}</strong>
                     <span class="status">${order.status.toUpperCase()}</span>
@@ -138,10 +152,10 @@ async function loadSellerData() {
                 <article class="data-row">
                     <div>
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                            <span class="product-id-tag">ID: #${product._id.slice(-6).toUpperCase()}</span>
+                            <span class="product-id-tag">${formatProductId(product._id)}</span>
                             <strong>${escapeHtml(product.name)}</strong>
                         </div>
-                        <span>ID completo: <code>${product._id}</code> · ${escapeHtml(product.category)} · ${product.stock} em estoque</span>
+                        <span>Código: <code>${product._id}</code> · ${escapeHtml(product.category)} · ${product.stock} em estoque</span>
                     </div>
                     <strong>${money(product.price)}</strong>
                     <button class="ghost-button" onclick="editProduct('${product._id}')">Editar</button>
@@ -153,8 +167,8 @@ async function loadSellerData() {
             ? orders.map(order => `
                 <article class="data-row">
                     <div>
-                        <strong>#${order._id.slice(-6).toUpperCase()}</strong>
-                        <span>${escapeHtml(order.customerId?.name || order.customerId?.email || 'Cliente')}</span>
+                        <strong>${formatOrderId(order._id)}</strong>
+                        <span>${escapeHtml(order.customerId?.name || order.customerId?.email || 'Cliente')} · ID: <code>${order._id}</code></span>
                     </div>
                     <strong>${money(order.total)}</strong>
                     <span class="status">${order.status.toUpperCase()}</span>
@@ -557,7 +571,7 @@ function renderStores(page = adminState.pages.stores) {
                             ${storeProducts.length ? storeProducts.map(p => `
                                 <div class="store-product-item">
                                     <div class="prod-info">
-                                        <span class="product-id-tag">ID: #${p._id.slice(-6).toUpperCase()}</span>
+                                        <span class="product-id-tag">${formatProductId(p._id)}</span>
                                         <span class="prod-name">${escapeHtml(p.name)}</span>
                                         <span style="color:var(--muted);">(${escapeHtml(p.category)})</span>
                                     </div>
@@ -590,7 +604,7 @@ function filteredProducts() {
     const stock = document.getElementById('productStockFilter').value; 
     
     return adminState.products.filter(item => {
-        const shortId = item._id ? `#${item._id.slice(-6).toLowerCase()}` : '';
+        const formattedId = formatProductId(item._id).toLowerCase();
         const fullId = (item._id || '').toLowerCase();
         const sellerId = (typeof item.sellerId === 'object' && item.sellerId !== null) ? item.sellerId._id : item.sellerId;
         const storeName = item.sellerId?.storeName || '';
@@ -599,7 +613,7 @@ function filteredProducts() {
             item.name.toLowerCase().includes(query) || 
             item.category.toLowerCase().includes(query) || 
             storeName.toLowerCase().includes(query) ||
-            shortId.includes(query) ||
+            formattedId.includes(query) ||
             fullId.includes(query);
             
         const matchesStore = storeFilter === 'all' || sellerId === storeFilter;
@@ -625,7 +639,7 @@ function renderProducts(page = adminState.pages.products) {
     }
     
     document.getElementById('adminProductsList').innerHTML = pageItems.map(product => {
-        const shortId = product._id ? product._id.slice(-6).toUpperCase() : 'N/A';
+        const visualId = formatProductId(product._id);
         const storeName = product.sellerId?.storeName || product.sellerId?.name || 'Loja Oficial';
         const stockBadge = product.stock > 0 ? `<span class="badge admin">${product.stock} em estoque</span>` : `<span class="badge blocked">Esgotado</span>`;
         
@@ -634,11 +648,11 @@ function renderProducts(page = adminState.pages.products) {
                 <button class="user-card-toggle" type="button" onclick="toggleCard(this.closest('.user-card'))">
                     <div>
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
-                            <span class="product-id-tag">ID: #${shortId}</span>
+                            <span class="product-id-tag">${visualId}</span>
                             <strong>${escapeHtml(product.name)}</strong>
                             <span class="badge seller">🏪 ${escapeHtml(storeName)}</span>
                         </div>
-                        <div class="user-card-email">ID completo: <code>${product._id}</code> · Categoria: ${escapeHtml(product.category)} · <strong>${money(product.price)}</strong></div>
+                        <div class="user-card-email">Código: <code>${visualId}</code> (${product._id}) · Categoria: ${escapeHtml(product.category)} · <strong>${money(product.price)}</strong></div>
                     </div>
                     <div class="user-card-meta">
                         ${stockBadge}
@@ -648,8 +662,8 @@ function renderProducts(page = adminState.pages.products) {
                 <div class="user-card-body">
                     <div class="user-card-grid">
                         <label>
-                            <span>ID do Produto (Sistema)</span>
-                            <input type="text" value="${product._id}" readonly style="background:#f8fafc; font-family:monospace; color:var(--muted);">
+                            <span>ID Visual do Produto</span>
+                            <input type="text" value="${visualId} (${product._id})" readonly style="background:#f8fafc; font-family:monospace; color:var(--muted);">
                         </label>
                         <label>
                             <span>Nome do produto</span>
@@ -753,6 +767,7 @@ document.getElementById('productForm').addEventListener('submit', saveProduct);
 ['productSearch', 'productStoreFilter', 'productCategoryFilter', 'productStockFilter'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', () => renderProducts(1));
+    if (el) el.addEventListener('change', () => renderProducts(1));
 });
 
 // Inicialização

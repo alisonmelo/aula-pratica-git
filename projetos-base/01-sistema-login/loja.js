@@ -5,6 +5,20 @@ const state = { products: [], cart: JSON.parse(localStorage.getItem(cartKey) || 
 const money = value => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 const escapeHtml = value => String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
 
+// --- FORMATADORES DE ID PERSONALIZÁVEIS ---
+// Você pode alterar o prefixo (ex.: 'PRD-', 'SKU-', 'PROD-') ou a lógica aqui:
+const formatProductId = id => {
+    if (!id) return 'PRD-00000';
+    const num = Math.abs(parseInt(String(id).slice(-6), 16) % 90000) + 10000;
+    return `PRD-${num}`;
+};
+
+const formatOrderId = id => {
+    if (!id) return 'PED-00000';
+    const num = Math.abs(parseInt(String(id).slice(-6), 16) % 90000) + 10000;
+    return `PED-${num}`;
+};
+
 // --- CONTROLE DE SESSÃO NO HEADER DA LOJA ---
 function configureStoreUser() {
     const token = localStorage.getItem('token');
@@ -81,14 +95,14 @@ function renderProducts() {
     }
     
     grid.innerHTML = state.products.map(product => {
-        const shortId = product._id ? product._id.slice(-6).toUpperCase() : 'N/A';
+        const visualId = formatProductId(product._id);
         const storeName = product.sellerId?.storeName || product.sellerId?.name || 'Loja Parceira';
         
         return `
             <article class="product-card">
                 <div class="product-image">
                     ${product.image ? `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}">` : '<span>TECH</span>'}
-                    <span class="product-id-badge" title="ID do Produto: ${product._id}">ID: #${shortId}</span>
+                    <span class="product-id-badge" title="ID do Produto: ${visualId}">${visualId}</span>
                 </div>
                 <div class="product-content">
                     <div class="product-meta-header">
@@ -96,7 +110,7 @@ function renderProducts() {
                         <span class="product-store-badge" title="Loja: ${escapeHtml(storeName)}">🏪 ${escapeHtml(storeName)}</span>
                     </div>
                     <h3>${escapeHtml(product.name)}</h3>
-                    <div class="product-full-id">ID: <code>${product._id}</code></div>
+                    <div class="product-full-id">Código: <code>${visualId}</code> <span style="font-size:10px; color:#94a3b8;">(${product._id})</span></div>
                     <p>${escapeHtml(product.description || 'Produto selecionado para seu setup.')}</p>
                     <div class="product-bottom">
                         <strong>${money(product.price)}</strong>
@@ -127,7 +141,7 @@ function addToCart(productId) {
         state.cart.push({ productId, name: product.name, price: product.price, stock: product.stock, quantity: 1 });
     }
     persistCart();
-    showToast(`"${product.name}" (ID #${productId.slice(-6).toUpperCase()}) adicionado ao carrinho.`);
+    showToast(`"${product.name}" (${formatProductId(productId)}) adicionado ao carrinho.`);
 }
 
 function changeQuantity(productId, amount) {
@@ -149,7 +163,7 @@ function renderCart() {
         <div class="cart-item">
             <div>
                 <strong>${escapeHtml(item.name)}</strong>
-                <div class="cart-item-id">ID: <code>#${item.productId.slice(-6).toUpperCase()}</code></div>
+                <div class="cart-item-id">ID: <code>${formatProductId(item.productId)}</code></div>
                 <span>${money(item.price)} cada</span>
             </div>
             <div class="quantity">
