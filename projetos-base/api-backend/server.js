@@ -323,13 +323,22 @@ app.post('/api/reset-password', async (req, res, next) => {
 // 4. CATÁLOGO PÚBLICO
 app.get('/api/products', async (req, res, next) => {
     try {
-        const { search = '', category = '', minPrice, maxPrice } = req.query;
+        const { search = '', category = '', sellerId = '', minPrice, maxPrice } = req.query;
         const filter = { active: true };
-        if (search.trim()) filter.$or = [
-            { name: { $regex: search.trim(), $options: 'i' } },
-            { description: { $regex: search.trim(), $options: 'i' } }
-        ];
+        if (search.trim()) {
+            const s = search.trim();
+            const orConditions = [
+                { name: { $regex: s, $options: 'i' } },
+                { description: { $regex: s, $options: 'i' } },
+                { category: { $regex: s, $options: 'i' } }
+            ];
+            if (mongoose.Types.ObjectId.isValid(s)) {
+                orConditions.push({ _id: s });
+            }
+            filter.$or = orConditions;
+        }
         if (category) filter.category = category;
+        if (sellerId && mongoose.Types.ObjectId.isValid(sellerId)) filter.sellerId = sellerId;
         if (minPrice || maxPrice) {
             filter.price = {};
             if (minPrice) filter.price.$gte = Number(minPrice);

@@ -11,7 +11,12 @@
         <a class="brand" href="loja.html">Loja<span>QA</span></a>
         <nav>
             <a href="#catalogo">Produtos</a>
-            <a href="login.html" id="accountLink">Entrar</a>
+            <div id="userNav" class="user-nav" style="display: none;">
+                <span class="user-greeting" id="userGreeting"></span>
+                <a href="painel.html" class="nav-panel-link" id="accountLink">Meu painel</a>
+                <button id="navLogoutBtn" class="ghost-button-small" type="button">Sair</button>
+            </div>
+            <a href="login.html" id="loginLink">Entrar</a>
             <button class="cart-button" id="cartButton" type="button">Carrinho <b id="cartCount">0</b></button>
         </nav>
     </header>
@@ -32,7 +37,7 @@
                 <span id="resultsSummary">Carregando...</span>
             </div>
             <div class="catalog-tools">
-                <label class="search-box"><span>Buscar</span><input id="searchInput" type="search" placeholder="Ex.: teclado mecânico"></label>
+                <label class="search-box"><span>Buscar</span><input id="searchInput" type="search" placeholder="Buscar por nome, categoria ou ID do produto..."></label>
                 <label><span>Categoria</span><select id="categoryFilter"><option value="">Todas</option></select></label>
                 <label><span>Preço máximo</span><input id="maxPrice" type="number" min="0" placeholder="R$ 0,00"></label>
             </div>

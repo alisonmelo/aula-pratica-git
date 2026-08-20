@@ -156,7 +156,10 @@
                 <!-- ABA 3: GERENCIAMENTO DE PRODUTOS -->
                 <div id="adminTabProducts" class="admin-tab-content hidden">
                     <div class="admin-toolbar">
-                        <input id="productSearch" type="search" placeholder="Buscar por produto ou categoria...">
+                        <input id="productSearch" type="search" placeholder="Buscar por ID do produto (#...), nome ou categoria...">
+                        <select id="productStoreFilter">
+                            <option value="all">Todas as lojas / vendedores</option>
+                        </select>
                         <select id="productCategoryFilter">
                             <option value="all">Todas as categorias</option>
                         </select>
