@@ -122,7 +122,8 @@ async function attemptLogin() {
             localStorage.setItem(failedKey(email), '0');
             
             showInfo(`Login bem-sucedido. Redirecionando...`);
-            setTimeout(() => window.location.href = 'dashboard.html', 500);
+            const returnToCheckout = new URLSearchParams(window.location.search).get('return') === 'checkout';
+            setTimeout(() => window.location.href = returnToCheckout ? 'painel.html#checkout' : 'painel.html', 500);
             
         } else {
             let attempts = parseInt(localStorage.getItem(failedKey(email)) || '0') + 1;

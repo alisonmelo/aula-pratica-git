@@ -91,6 +91,7 @@
                 <select id="userRoleFilter">
                     <option value="all">Todos os perfis</option>
                     <option value="admin">Admin</option>
+                    <option value="seller">Lojista</option>
                     <option value="user">Usuário</option>
                     <option value="blocked">Bloqueado</option>
                 </select>
@@ -175,7 +176,7 @@
         }
 
         list.innerHTML = pageUsers.map(user => {
-            const badgeClass = user.role === 'admin' ? 'badge admin' : user.role === 'blocked' ? 'badge blocked' : 'badge';
+            const badgeClass = user.role === 'admin' ? 'badge admin' : user.role === 'blocked' ? 'badge blocked' : user.role === 'seller' ? 'badge seller' : 'badge';
             const selectedRole = user.role || 'user';
             const isBlocked = user.role === 'blocked';
             const testUsers = ['admin@system.com', 'user@system.com', 'blocked@system.com', 'slow@system.com'];
@@ -210,6 +211,7 @@
                                 <select data-field="role" ${disabledAttribute}>
                                     <option value="user" ${selectedRole === 'user' ? 'selected' : ''}>Usuário</option>
                                     <option value="admin" ${selectedRole === 'admin' ? 'selected' : ''}>Admin</option>
+                                    <option value="seller" ${selectedRole === 'seller' ? 'selected' : ''}>Lojista</option>
                                     <option value="blocked" ${selectedRole === 'blocked' ? 'selected' : ''}>Bloqueado</option>
                                 </select>
                             </label>

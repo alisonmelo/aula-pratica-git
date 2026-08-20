@@ -62,8 +62,14 @@ Em outras palavras:
 Além disso, as regras atuais de validação aplicadas ao sistema são:
 
 - Nome: até 50 caracteres;
-- Senha: entre 8 e 12 caracteres;
+- Senha: entre 8 e 25 caracteres;
 - E-mail: validação por regex.
+
+## 🛒 Projeto LojaQA
+
+A evolução de e-commerce está documentada em [PROJETO-LOJA-QA.md](PROJETO-LOJA-QA.md). A vitrine pode ser acessada em [loja.html](projetos-base/01-sistema-login/loja.html), e o painel por perfil em [painel.html](projetos-base/01-sistema-login/painel.html).
+
+Os papéis da nova versão são `user` (cliente), `seller` (lojista), `admin` (controle global) e `blocked` (acesso negado). O catálogo e o carrinho funcionam sem login; a autenticação é exigida apenas no checkout.
 
 ## 📚 Propósito pedagógico
 
