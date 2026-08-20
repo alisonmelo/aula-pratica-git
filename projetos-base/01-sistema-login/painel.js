@@ -5,7 +5,7 @@ const cartKey = 'lojaqa_cart';
 const money = value => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 const escapeHtml = value => String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
 
-if (!token || !user) window.location.replace('index.html');
+if (!token || !user) window.location.replace('login.html');
 
 function api(path, options = {}) {
     return fetch(`${API_URL}${path}`, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(options.headers || {}) } }).then(async response => {
@@ -65,7 +65,7 @@ async function loadAdminData() {
 }
 function showNotice(message, error = false) { const notice = document.getElementById('notice'); notice.textContent = message; notice.className = `notice ${error ? 'error' : 'success'}`; setTimeout(() => notice.className = 'notice', 3000); }
 
-document.getElementById('logoutButton').addEventListener('click', () => { localStorage.clear(); sessionStorage.clear(); window.location.replace('index.html'); });
+document.getElementById('logoutButton').addEventListener('click', () => { localStorage.clear(); sessionStorage.clear(); window.location.replace('loja.html'); });
 document.getElementById('checkoutForm').addEventListener('submit', submitCheckout);
 document.getElementById('newProductButton').addEventListener('click', () => document.getElementById('productForm').classList.remove('hidden'));
 document.getElementById('cancelProductButton').addEventListener('click', resetProductForm);

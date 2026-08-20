@@ -187,6 +187,10 @@ const isCustomer = (req, res, next) => {
 
 // --- ROTAS ---
 
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ service: 'lojaqa-api', version: '2.0', status: 'ok' });
+});
+
 // 1. LOGIN
 app.post('/api/login', loginLimiter, async (req, res, next) => {
     try {
@@ -217,7 +221,7 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
 // 2. CADASTRO DE NOVO USUÁRIO (Nova Feature)
 app.post('/api/register', async (req, res, next) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, role = 'user', storeName = '' } = req.body;
 
         if (!name || !email || !password) {
             return res.status(400).json({ error: "Todos os campos são obrigatórios." });
@@ -231,6 +235,14 @@ app.post('/api/register', async (req, res, next) => {
             return res.status(400).json({ error: "E-mail inválido." });
         }
 
+        if (!['user', 'seller'].includes(role)) {
+            return res.status(400).json({ error: "Perfil de cadastro inválido." });
+        }
+
+        if (role === 'seller' && (!storeName.trim() || storeName.trim().length > 80)) {
+            return res.status(400).json({ error: "Lojistas precisam informar uma loja de até 80 caracteres." });
+        }
+
         if (password.length < 8 || password.length > 25) {
             return res.status(400).json({ error: "A senha deve conter entre 8 e 25 caracteres." });
         }
@@ -240,7 +252,7 @@ app.post('/api/register', async (req, res, next) => {
             return res.status(409).json({ error: "Já existe um usuário cadastrado com este e-mail." });
         }
 
-        const newUser = new User({ name, email, password, role: 'user' });
+        const newUser = new User({ name, email, password, role, storeName: role === 'seller' ? storeName.trim() : '' });
         await newUser.save();
 
         res.status(201).json({ message: "Usuário cadastrado com sucesso!" });

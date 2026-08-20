@@ -69,7 +69,19 @@ Além disso, as regras atuais de validação aplicadas ao sistema são:
 
 A evolução de e-commerce está documentada em [PROJETO-LOJA-QA.md](PROJETO-LOJA-QA.md). A vitrine pode ser acessada em [loja.html](projetos-base/01-sistema-login/loja.html), e o painel por perfil em [painel.html](projetos-base/01-sistema-login/painel.html).
 
-Os papéis da nova versão são `user` (cliente), `seller` (lojista), `admin` (controle global) e `blocked` (acesso negado). O catálogo e o carrinho funcionam sem login; a autenticação é exigida apenas no checkout.
+Os papéis da nova versão são `user` (cliente), `seller` (lojista), `admin` (controle global) e `blocked` (acesso negado). O catálogo e o carrinho funcionam sem login; a autenticação é exigida apenas no checkout. O cadastro permite escolher entre cliente e lojista, sem permitir que o público crie uma conta administrativa.
+
+### Deploy do backend no Render
+
+No serviço da API, configure:
+
+- Branch: `final-modulo1` (ou o branch que contenha a implementação LojaQA);
+- Root Directory: `projetos-base/api-backend`;
+- Build Command: `npm install`;
+- Start Command: `npm start`;
+- Health check: `/api/health`.
+
+Depois do redeploy, `https://api-qa-fap2026.onrender.com/api/health` deve retornar `{"service":"lojaqa-api","version":"2.0","status":"ok"}`. Se `/api/products` retornar `404`, o Render ainda está executando a versão antiga do backend.
 
 ## 📚 Propósito pedagógico
 

@@ -32,6 +32,7 @@ O carrinho pode ser usado anonimamente. Login só é obrigatório para concluir 
 - Separação de pedidos por lojista.
 - Usuário seed `lojista@system.com`.
 - Produtos seed para a vitrine.
+- Entrada principal da aplicação em `loja.html`; autenticação em `login.html`.
 
 ### Próximas evoluções
 
@@ -140,6 +141,7 @@ painel.html
 |---|---|---|---|
 | GET | `/api/products` | Público | Catálogo com busca/filtros |
 | GET | `/api/products/categories` | Público | Categorias disponíveis |
+| GET | `/api/health` | Público | Verificar versão publicada da API |
 | POST | `/api/orders` | Cliente autenticado | Criar pedido e baixar estoque |
 | GET | `/api/orders/me` | Cliente autenticado | Pedidos do próprio cliente |
 | GET | `/api/seller/products` | `seller`/`admin` | Produtos da loja ou visão global |
