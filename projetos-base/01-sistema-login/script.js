@@ -19,7 +19,9 @@ function validateRegisterForm() {
     const name = document.getElementById('reg-name').value.trim();
     const email = document.getElementById('reg-email').value.trim();
     const password = document.getElementById('reg-password').value;
-    const isValid = name.length > 0 && name.length <= 50 && isValidEmail(email) && password.length >= 8 && password.length <= 25;
+    const role = document.getElementById('reg-role')?.value || 'user';
+    const storeName = document.getElementById('reg-store-name')?.value.trim() || '';
+    const isValid = name.length > 0 && name.length <= 50 && isValidEmail(email) && password.length >= 8 && password.length <= 25 && (role !== 'seller' || storeName.length > 0);
     document.getElementById('registerBtn').disabled = !isValid;
 }
 
@@ -147,18 +149,21 @@ async function attemptRegister() {
     const name = document.getElementById('reg-name').value.trim();
     const email = document.getElementById('reg-email').value.trim().toLowerCase();
     const password = document.getElementById('reg-password').value;
+    const role = document.getElementById('reg-role')?.value || 'user';
+    const storeName = document.getElementById('reg-store-name')?.value.trim() || '';
 
     if (!name || !email || !password) return showError("Todos os campos são obrigatórios.");
     if (name.length > 50) return showError("O nome não pode ter mais de 50 caracteres.");
     if (!isValidEmail(email)) return showError("E-mail inválido. Use o formato: usuario@dominio.com");
     if (password.length < 8) return showError("A senha deve conter no mínimo 8 caracteres.");
     if (password.length > 25) return showError("A senha não pode ter mais de 25 caracteres.");
+    if (role === 'seller' && !storeName) return showError("Informe o nome da sua loja.");
 
     try {
         const response = await fetch(`${API_URL}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password })
+            body: JSON.stringify({ name, email, password, role, storeName })
         });
 
         const data = await response.json();
@@ -227,6 +232,7 @@ window.addEventListener('load', () => {
     regNameInput.addEventListener('input', validateRegisterForm);
     regEmailInput.addEventListener('input', validateRegisterForm);
     regPasswordInput.addEventListener('input', validateRegisterForm);
+    document.getElementById('reg-store-name')?.addEventListener('input', validateRegisterForm);
     
     // Forgot password validation
     forgotEmailInput.addEventListener('input', validateForgotForm);

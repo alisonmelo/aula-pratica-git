@@ -18,11 +18,14 @@ async function loadCatalog() {
     grid.innerHTML = '<div class="loading-state">Carregando vitrine...</div>';
     try {
         const response = await fetch(`${API_URL}/products?${params}`);
+        if (response.status === 404) throw new Error('API_DESATUALIZADA');
         if (!response.ok) throw new Error('Falha ao carregar produtos');
         state.products = await response.json();
         renderProducts();
     } catch (error) {
-        grid.innerHTML = '<div class="empty-state">A vitrine está temporariamente indisponível.</div>';
+        grid.innerHTML = error.message === 'API_DESATUALIZADA'
+            ? '<div class="empty-state"><strong>Catálogo aguardando publicação da API nova.</strong><br>Faça o redeploy do backend no Render usando o branch com a LojaQA.</div>'
+            : '<div class="empty-state">A vitrine está temporariamente indisponível.</div>';
     }
 }
 
@@ -111,7 +114,7 @@ function checkout() {
     if (!state.cart.length) return showToast('Adicione pelo menos um produto para continuar.');
     if (!localStorage.getItem('token')) {
         showToast('Faça login para finalizar a compra.');
-        setTimeout(() => window.location.href = 'index.html?return=checkout', 700);
+        setTimeout(() => window.location.href = 'login.html?return=checkout', 700);
         return;
     }
     window.location.href = 'painel.html#checkout';
