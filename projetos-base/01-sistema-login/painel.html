@@ -10,23 +10,170 @@
 <body>
     <header class="panel-header">
         <a class="brand" href="loja.html">Loja<span>QA</span></a>
-        <div class="header-actions"><span id="userSummary"></span><button id="logoutButton" class="ghost-button" type="button">Sair</button></div>
+        <div class="header-actions">
+            <span id="userSummary"></span>
+            <button id="logoutButton" class="ghost-button" type="button">Sair</button>
+        </div>
     </header>
+
     <main class="panel-layout">
-        <aside class="panel-nav"><p class="eyebrow">ÁREA AUTENTICADA</p><h1 id="panelTitle">Meu painel</h1><span class="role-badge" id="roleBadge"></span><nav id="panelNav"></nav></aside>
+        <aside class="panel-nav">
+            <p class="eyebrow">ÁREA AUTENTICADA</p>
+            <h1 id="panelTitle">Meu painel</h1>
+            <span class="role-badge" id="roleBadge"></span>
+            <nav id="panelNav"></nav>
+        </aside>
+
         <section class="panel-content">
             <div id="notice" class="notice"></div>
-            <section id="profileSection" class="panel-section"><div class="section-title"><div><p class="eyebrow">CONTA</p><h2>Seu perfil</h2></div></div><div class="metric-grid" id="profileMetrics"></div></section>
-            <section id="ordersSection" class="panel-section hidden"><div class="section-title"><div><p class="eyebrow">HISTÓRICO</p><h2>Meus pedidos</h2></div></div><div id="ordersList" class="data-list"></div></section>
-            <section id="checkoutSection" class="panel-section hidden"><div class="section-title"><div><p class="eyebrow">ÚLTIMO PASSO</p><h2>Finalizar compra</h2></div></div><form id="checkoutForm" class="checkout-form"><label>Endereço de entrega<textarea id="shippingAddress" maxlength="300" required placeholder="Rua, número, bairro, cidade"></textarea></label><button class="primary-button" type="submit">Confirmar pedido</button></form></section>
-            <section id="sellerSection" class="panel-section hidden"><div class="section-title"><div><p class="eyebrow">LOJA</p><h2>Minha loja</h2></div><button class="primary-button" id="newProductButton" type="button">Novo produto</button></div><form id="productForm" class="product-form hidden"><input id="productId" type="hidden"><input id="productName" maxlength="120" placeholder="Nome do produto" required><input id="productCategory" maxlength="60" placeholder="Categoria" required><input id="productPrice" type="number" min="0" step="0.01" placeholder="Preço" required><input id="productStock" type="number" min="0" step="1" placeholder="Estoque" required><textarea id="productDescription" maxlength="1000" placeholder="Descrição"></textarea><input id="productImage" type="url" placeholder="URL da imagem"><div><button class="primary-button" type="submit">Salvar produto</button><button class="ghost-button" id="cancelProductButton" type="button">Cancelar</button></div></form><div id="sellerProducts" class="data-list"></div><div class="section-title subheading"><div><p class="eyebrow">OPERAÇÃO</p><h2>Pedidos da loja</h2></div></div><div id="sellerOrders" class="data-list"></div></section>
-            <section id="adminSection" class="panel-section hidden"><div class="section-title"><div><p class="eyebrow">PLATAFORMA</p><h2>Administração</h2><p class="section-description">Abra somente o módulo que deseja consultar ou editar.</p></div></div><div class="admin-modules">
-                <article class="admin-module" data-module="users"><button class="module-toggle" type="button" aria-expanded="false"><span><strong>Usuários</strong><small>Perfis, acesso e bloqueios</small></span><span class="module-icon">+</span></button><div class="module-content hidden"><div class="admin-toolbar"><input id="adminUserSearch" type="search" placeholder="Buscar por nome ou e-mail"><select id="adminUserRole"><option value="all">Todos os perfis</option><option value="user">Clientes</option><option value="seller">Lojistas</option><option value="admin">Administradores</option><option value="blocked">Bloqueados</option></select></div><div id="adminUsers" class="data-list"></div><div id="adminUserPagination" class="pagination"></div></div></article>
-                <article class="admin-module" data-module="stores"><button class="module-toggle" type="button" aria-expanded="false"><span><strong>Lojas</strong><small>Lojistas cadastrados e suas lojas</small></span><span class="module-icon">+</span></button><div class="module-content hidden"><div class="admin-toolbar"><input id="storeSearch" type="search" placeholder="Buscar loja ou lojista"><select id="storeStatus"><option value="all">Todas as lojas</option><option value="active">Ativas</option><option value="blocked">Bloqueadas</option></select></div><div id="adminStores" class="data-list"></div><div id="storePagination" class="pagination"></div></div></article>
-                <article class="admin-module" data-module="products"><button class="module-toggle" type="button" aria-expanded="false"><span><strong>Produtos</strong><small>Catálogo de todas as lojas</small></span><span class="module-icon">+</span></button><div class="module-content hidden"><div class="admin-toolbar"><input id="productSearch" type="search" placeholder="Buscar produto ou categoria"><select id="productCategoryFilter"><option value="all">Todas as categorias</option></select><select id="productStockFilter"><option value="all">Qualquer estoque</option><option value="available">Em estoque</option><option value="empty">Sem estoque</option></select></div><div id="adminProducts" class="data-list"></div><div id="productPagination" class="pagination"></div></div></article>
-            </div></section>
+
+            <!-- SEÇÃO DE PERFIL -->
+            <section id="profileSection" class="panel-section">
+                <div class="section-title">
+                    <div>
+                        <p class="eyebrow">CONTA</p>
+                        <h2>Seu perfil</h2>
+                    </div>
+                </div>
+                <div class="metric-grid" id="profileMetrics"></div>
+            </section>
+
+            <!-- SEÇÃO DE PEDIDOS DO CLIENTE -->
+            <section id="ordersSection" class="panel-section hidden">
+                <div class="section-title">
+                    <div>
+                        <p class="eyebrow">HISTÓRICO</p>
+                        <h2>Meus pedidos</h2>
+                    </div>
+                </div>
+                <div id="ordersList" class="data-list"></div>
+            </section>
+
+            <!-- SEÇÃO DE CHECKOUT -->
+            <section id="checkoutSection" class="panel-section hidden">
+                <div class="section-title">
+                    <div>
+                        <p class="eyebrow">ÚLTIMO PASSO</p>
+                        <h2>Finalizar compra</h2>
+                    </div>
+                </div>
+                <form id="checkoutForm" class="checkout-form">
+                    <label>
+                        Endereço de entrega
+                        <textarea id="shippingAddress" maxlength="300" required placeholder="Rua, número, bairro, cidade"></textarea>
+                    </label>
+                    <button class="primary-button" type="submit">Confirmar pedido</button>
+                </form>
+            </section>
+
+            <!-- SEÇÃO DO LOJISTA -->
+            <section id="sellerSection" class="panel-section hidden">
+                <div class="section-title">
+                    <div>
+                        <p class="eyebrow">LOJA</p>
+                        <h2>Minha loja</h2>
+                    </div>
+                    <button class="primary-button" id="newProductButton" type="button">Novo produto</button>
+                </div>
+                <form id="productForm" class="product-form hidden">
+                    <input id="productId" type="hidden">
+                    <input id="productName" maxlength="120" placeholder="Nome do produto" required>
+                    <input id="productCategory" maxlength="60" placeholder="Categoria" required>
+                    <input id="productPrice" type="number" min="0" step="0.01" placeholder="Preço" required>
+                    <input id="productStock" type="number" min="0" step="1" placeholder="Estoque" required>
+                    <textarea id="productDescription" maxlength="1000" placeholder="Descrição"></textarea>
+                    <input id="productImage" type="url" placeholder="URL da imagem">
+                    <div>
+                        <button class="primary-button" type="submit">Salvar produto</button>
+                        <button class="ghost-button" id="cancelProductButton" type="button">Cancelar</button>
+                    </div>
+                </form>
+                <div id="sellerProducts" class="data-list"></div>
+                <div class="section-title subheading">
+                    <div>
+                        <p class="eyebrow">OPERAÇÃO</p>
+                        <h2>Pedidos da loja</h2>
+                    </div>
+                </div>
+                <div id="sellerOrders" class="data-list"></div>
+            </section>
+
+            <!-- SEÇÃO DE ADMINISTRAÇÃO ESTILO DASHBOARD -->
+            <section id="adminSection" class="panel-section hidden">
+                <div class="section-title">
+                    <div>
+                        <p class="eyebrow">PLATAFORMA</p>
+                        <h2>Administração do Sistema</h2>
+                        <p class="section-description">Gerencie contas de usuários, lojistas e o catálogo de produtos com ferramentas completas.</p>
+                    </div>
+                </div>
+
+                <!-- ABAS DE NAVEGAÇÃO ADMIN -->
+                <div class="admin-tabs">
+                    <button class="admin-tab active" data-tab="users" onclick="switchAdminTab('users')">
+                        👥 Usuários <span id="userCountBadge" class="badge-count">0</span>
+                    </button>
+                    <button class="admin-tab" data-tab="stores" onclick="switchAdminTab('stores')">
+                        🏪 Lojas <span id="storeCountBadge" class="badge-count">0</span>
+                    </button>
+                    <button class="admin-tab" data-tab="products" onclick="switchAdminTab('products')">
+                        📦 Produtos <span id="productCountBadge" class="badge-count">0</span>
+                    </button>
+                </div>
+
+                <!-- ABA 1: GERENCIAMENTO DE USUÁRIOS (ESTILO DASHBOARD) -->
+                <div id="adminTabUsers" class="admin-tab-content">
+                    <div class="admin-toolbar">
+                        <input id="adminUserSearch" type="search" placeholder="Buscar por nome ou e-mail...">
+                        <select id="adminUserRole">
+                            <option value="all">Todos os perfis</option>
+                            <option value="user">Clientes</option>
+                            <option value="seller">Lojistas</option>
+                            <option value="admin">Administradores</option>
+                            <option value="blocked">Bloqueados</option>
+                        </select>
+                    </div>
+                    <div id="adminUsersSummary" class="users-summary"></div>
+                    <div id="adminUsersList" class="users-list"></div>
+                    <div id="adminUserPagination" class="pagination"></div>
+                </div>
+
+                <!-- ABA 2: GERENCIAMENTO DE LOJAS -->
+                <div id="adminTabStores" class="admin-tab-content hidden">
+                    <div class="admin-toolbar">
+                        <input id="storeSearch" type="search" placeholder="Buscar loja, lojista ou e-mail...">
+                        <select id="storeStatus">
+                            <option value="all">Todas as lojas</option>
+                            <option value="active">Ativas</option>
+                            <option value="blocked">Bloqueadas</option>
+                        </select>
+                    </div>
+                    <div id="adminStoresSummary" class="users-summary"></div>
+                    <div id="adminStoresList" class="users-list"></div>
+                    <div id="storePagination" class="pagination"></div>
+                </div>
+
+                <!-- ABA 3: GERENCIAMENTO DE PRODUTOS -->
+                <div id="adminTabProducts" class="admin-tab-content hidden">
+                    <div class="admin-toolbar">
+                        <input id="productSearch" type="search" placeholder="Buscar por produto ou categoria...">
+                        <select id="productCategoryFilter">
+                            <option value="all">Todas as categorias</option>
+                        </select>
+                        <select id="productStockFilter">
+                            <option value="all">Qualquer estoque</option>
+                            <option value="available">Em estoque</option>
+                            <option value="empty">Sem estoque</option>
+                        </select>
+                    </div>
+                    <div id="adminProductsSummary" class="users-summary"></div>
+                    <div id="adminProductsList" class="users-list"></div>
+                    <div id="productPagination" class="pagination"></div>
+                </div>
+            </section>
         </section>
     </main>
+
     <script src="painel.js"></script>
 </body>
 </html>
