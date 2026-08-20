@@ -2,8 +2,40 @@ const API_URL = 'https://api-qa-fap2026.onrender.com/api';
 const cartKey = 'lojaqa_cart';
 const state = { products: [], cart: JSON.parse(localStorage.getItem(cartKey) || '[]') };
 
-const money = value => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+const money = value => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 const escapeHtml = value => String(value || '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
+
+// --- CONTROLE DE SESSÃO NO HEADER DA LOJA ---
+function configureStoreUser() {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    const userNav = document.getElementById('userNav');
+    const loginLink = document.getElementById('loginLink');
+    const userGreeting = document.getElementById('userGreeting');
+    const accountLink = document.getElementById('accountLink');
+    const navLogoutBtn = document.getElementById('navLogoutBtn');
+
+    if (token && user) {
+        if (loginLink) loginLink.style.display = 'none';
+        if (userNav) userNav.style.display = 'inline-flex';
+        if (userGreeting) userGreeting.textContent = `Olá, ${user.name ? user.name.split(' ')[0] : 'Usuário'}`;
+        if (accountLink) {
+            accountLink.href = 'painel.html';
+            accountLink.textContent = user.role === 'admin' ? 'Painel Admin' : user.role === 'seller' ? 'Minha Loja' : 'Meu Painel';
+        }
+        if (navLogoutBtn) {
+            navLogoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('isAuthenticated');
+                window.location.reload();
+            });
+        }
+    } else {
+        if (loginLink) loginLink.style.display = 'inline';
+        if (userNav) userNav.style.display = 'none';
+    }
+}
 
 async function loadCatalog() {
     const params = new URLSearchParams();
@@ -41,23 +73,42 @@ async function loadCategories() {
 
 function renderProducts() {
     const grid = document.getElementById('productGrid');
-    document.getElementById('resultsSummary').textContent = `${state.products.length} produto(s)`;
+    document.getElementById('resultsSummary').textContent = `${state.products.length} produto(s) encontrado(s)`;
+    
     if (!state.products.length) {
         grid.innerHTML = '<div class="empty-state">Nenhum produto encontrado para os filtros atuais.</div>';
         return;
     }
-    grid.innerHTML = state.products.map(product => `
-        <article class="product-card">
-            <div class="product-image">${product.image ? `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}">` : '<span>TECH</span>'}</div>
-            <div class="product-content">
-                <span class="product-category">${escapeHtml(product.category)}</span>
-                <h3>${escapeHtml(product.name)}</h3>
-                <p>${escapeHtml(product.description || 'Produto selecionado para seu setup.')}</p>
-                <div class="product-bottom"><strong>${money(product.price)}</strong><span>${product.stock} em estoque</span></div>
-                <button class="primary-button" type="button" onclick="addToCart('${product._id}')" ${product.stock < 1 ? 'disabled' : ''}>${product.stock ? 'Adicionar ao carrinho' : 'Fora de estoque'}</button>
-            </div>
-        </article>
-    `).join('');
+    
+    grid.innerHTML = state.products.map(product => {
+        const shortId = product._id ? product._id.slice(-6).toUpperCase() : 'N/A';
+        const storeName = product.sellerId?.storeName || product.sellerId?.name || 'Loja Parceira';
+        
+        return `
+            <article class="product-card">
+                <div class="product-image">
+                    ${product.image ? `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}">` : '<span>TECH</span>'}
+                    <span class="product-id-badge" title="ID do Produto: ${product._id}">ID: #${shortId}</span>
+                </div>
+                <div class="product-content">
+                    <div class="product-meta-header">
+                        <span class="product-category">${escapeHtml(product.category)}</span>
+                        <span class="product-store-badge" title="Loja: ${escapeHtml(storeName)}">🏪 ${escapeHtml(storeName)}</span>
+                    </div>
+                    <h3>${escapeHtml(product.name)}</h3>
+                    <div class="product-full-id">ID: <code>${product._id}</code></div>
+                    <p>${escapeHtml(product.description || 'Produto selecionado para seu setup.')}</p>
+                    <div class="product-bottom">
+                        <strong>${money(product.price)}</strong>
+                        <span class="${product.stock > 0 ? 'stock-available' : 'stock-empty'}">${product.stock > 0 ? `${product.stock} em estoque` : 'Esgotado'}</span>
+                    </div>
+                    <button class="primary-button" type="button" onclick="addToCart('${product._id}')" ${product.stock < 1 ? 'disabled' : ''}>
+                        ${product.stock ? 'Adicionar ao carrinho' : 'Fora de estoque'}
+                    </button>
+                </div>
+            </article>
+        `;
+    }).join('');
 }
 
 function persistCart() {
@@ -76,7 +127,7 @@ function addToCart(productId) {
         state.cart.push({ productId, name: product.name, price: product.price, stock: product.stock, quantity: 1 });
     }
     persistCart();
-    showToast('Produto adicionado ao carrinho.');
+    showToast(`"${product.name}" (ID #${productId.slice(-6).toUpperCase()}) adicionado ao carrinho.`);
 }
 
 function changeQuantity(productId, amount) {
@@ -93,8 +144,20 @@ function renderCart() {
     const total = state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
     document.getElementById('cartCount').textContent = count;
     document.getElementById('cartTotal').textContent = money(total);
+    
     document.getElementById('cartItems').innerHTML = state.cart.length ? state.cart.map(item => `
-        <div class="cart-item"><div><strong>${escapeHtml(item.name)}</strong><span>${money(item.price)} cada</span></div><div class="quantity"><button type="button" onclick="changeQuantity('${item.productId}', -1)">−</button><b>${item.quantity}</b><button type="button" onclick="changeQuantity('${item.productId}', 1)">+</button></div></div>
+        <div class="cart-item">
+            <div>
+                <strong>${escapeHtml(item.name)}</strong>
+                <div class="cart-item-id">ID: <code>#${item.productId.slice(-6).toUpperCase()}</code></div>
+                <span>${money(item.price)} cada</span>
+            </div>
+            <div class="quantity">
+                <button type="button" onclick="changeQuantity('${item.productId}', -1)">−</button>
+                <b>${item.quantity}</b>
+                <button type="button" onclick="changeQuantity('${item.productId}', 1)">+</button>
+            </div>
+        </div>
     `).join('') : '<div class="empty-state">Seu carrinho está vazio.</div>';
 }
 
@@ -134,7 +197,8 @@ document.getElementById('cartButton').addEventListener('click', openCart);
 document.getElementById('closeCart').addEventListener('click', closeCart);
 document.getElementById('drawerBackdrop').addEventListener('click', closeCart);
 document.getElementById('checkoutButton').addEventListener('click', checkout);
-if (localStorage.getItem('token')) document.getElementById('accountLink').textContent = 'Meu painel';
+
+configureStoreUser();
 loadCategories();
 loadCatalog();
 renderCart();

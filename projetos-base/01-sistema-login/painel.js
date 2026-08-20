@@ -127,7 +127,7 @@ async function submitCheckout(event) {
     }
 }
 
-// --- PAINEL DO LOJISTA ---
+// --- PAINEL DO LOJISTA (COM ID VISUAL DE PRODUTO) ---
 async function loadSellerData() {
     try {
         const [products, orders] = await Promise.all([api('/seller/products'), api('/seller/orders')]);
@@ -137,8 +137,11 @@ async function loadSellerData() {
             ? products.map(product => `
                 <article class="data-row">
                     <div>
-                        <strong>${escapeHtml(product.name)}</strong>
-                        <span>${escapeHtml(product.category)} · ${product.stock} em estoque</span>
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                            <span class="product-id-tag">ID: #${product._id.slice(-6).toUpperCase()}</span>
+                            <strong>${escapeHtml(product.name)}</strong>
+                        </div>
+                        <span>ID completo: <code>${product._id}</code> · ${escapeHtml(product.category)} · ${product.stock} em estoque</span>
                     </div>
                     <strong>${money(product.price)}</strong>
                     <button class="ghost-button" onclick="editProduct('${product._id}')">Editar</button>
@@ -208,7 +211,7 @@ async function saveProduct(event) {
 }
 
 // ========================================================
-// --- MÓDULO ADMINISTRATIVO (ESTILO DASHBOARD ANTERIOR) ---
+// --- MÓDULO ADMINISTRATIVO (ESTILO DASHBOARD + LOJAS + PRODUTOS) ---
 // ========================================================
 
 async function loadAdminData() {
@@ -226,6 +229,14 @@ async function loadAdminData() {
         document.getElementById('storeCountBadge').textContent = adminState.stores.length;
         document.getElementById('productCountBadge').textContent = adminState.products.length;
         
+        // Popula filtro de lojas
+        const storeSelect = document.getElementById('productStoreFilter');
+        if (storeSelect) {
+            storeSelect.innerHTML = '<option value="all">Todas as lojas / vendedores</option>' + 
+                adminState.stores.map(store => `<option value="${store._id}">${escapeHtml(store.storeName || store.name || 'Loja')} (${escapeHtml(store.email)})</option>`).join('');
+        }
+
+        // Popula filtro de categorias
         const categories = [...new Set(adminState.products.map(item => item.category).filter(Boolean))].sort();
         const catSelect = document.getElementById('productCategoryFilter');
         if (catSelect) {
@@ -253,6 +264,15 @@ function switchAdminTab(tabName) {
     if (tabName === 'users') renderUsers();
     if (tabName === 'stores') renderStores();
     if (tabName === 'products') renderProducts();
+}
+
+function filterProductsByStore(storeId) {
+    switchAdminTab('products');
+    const storeSelect = document.getElementById('productStoreFilter');
+    if (storeSelect) {
+        storeSelect.value = storeId;
+        renderProducts(1);
+    }
 }
 
 function renderPagination(id, total, page, key, renderFunc) {
@@ -456,7 +476,7 @@ async function unlockAdminUser(userId, button) {
     }
 }
 
-// 2. ABA DE LOJAS
+// 2. ABA DE LOJAS COM SUBMENU / PRODUTOS POR LOJISTA
 function filteredStores() { 
     const query = document.getElementById('storeSearch').value.toLowerCase().trim(); 
     const status = document.getElementById('storeStatus').value; 
@@ -486,12 +506,18 @@ function renderStores(page = adminState.pages.stores) {
         const badgeClass = isBlocked ? 'badge blocked' : 'badge seller';
         const statusLabel = isBlocked ? 'BLOQUEADA' : 'ATIVA';
         
+        // Produtos cadastrados especificamente para esta loja
+        const storeProducts = adminState.products.filter(p => {
+            const sId = (typeof p.sellerId === 'object' && p.sellerId !== null) ? p.sellerId._id : p.sellerId;
+            return sId === store._id || p.sellerId?.storeName === store.storeName;
+        });
+        
         return `
             <article class="user-card">
                 <button class="user-card-toggle" type="button" onclick="toggleCard(this.closest('.user-card'))">
                     <div>
                         <strong>🏪 ${escapeHtml(store.storeName || 'Loja sem nome')}</strong>
-                        <div class="user-card-email">Responsável: ${escapeHtml(store.name || 'Sem nome')} (${escapeHtml(store.email)})</div>
+                        <div class="user-card-email">Responsável: ${escapeHtml(store.name || 'Sem nome')} (${escapeHtml(store.email)}) · <strong>${storeProducts.length} produto(s)</strong></div>
                     </div>
                     <div class="user-card-meta">
                         <span class="${badgeClass}">${statusLabel}</span>
@@ -520,8 +546,33 @@ function renderStores(page = adminState.pages.stores) {
                             </select>
                         </label>
                     </div>
+
+                    <!-- SUBMENU: PRODUTOS DESTA LOJA EM ESPECÍFICO -->
+                    <div class="store-products-container">
+                        <div class="store-products-header">
+                            <h4>📦 Produtos Cadastrados desta Loja (${storeProducts.length})</h4>
+                            <button class="ghost-button" type="button" onclick="filterProductsByStore('${store._id}')">🔍 Ver no Catálogo Geral</button>
+                        </div>
+                        <div class="store-products-list">
+                            ${storeProducts.length ? storeProducts.map(p => `
+                                <div class="store-product-item">
+                                    <div class="prod-info">
+                                        <span class="product-id-tag">ID: #${p._id.slice(-6).toUpperCase()}</span>
+                                        <span class="prod-name">${escapeHtml(p.name)}</span>
+                                        <span style="color:var(--muted);">(${escapeHtml(p.category)})</span>
+                                    </div>
+                                    <div style="display:flex; align-items:center; gap:12px;">
+                                        <strong>${money(p.price)}</strong>
+                                        <span class="${p.stock > 0 ? 'badge admin' : 'badge blocked'}">${p.stock} em estoque</span>
+                                        <button class="ghost-button" style="padding:4px 8px; font-size:12px;" onclick="filterProductsByStore('${store._id}')">Editar</button>
+                                    </div>
+                                </div>
+                            `).join('') : '<div style="font-size:13px; color:var(--muted); padding:10px 0;">Esta loja ainda não possui produtos cadastrados.</div>'}
+                        </div>
+                    </div>
+
                     <div class="user-card-actions">
-                        <button class="primary-button btn-small" type="button" onclick="saveAdminUser('${store._id}', this)">Salvar Loja</button>
+                        <button class="primary-button btn-small" type="button" onclick="saveAdminUser('${store._id}', this)">Salvar Dados da Loja</button>
                     </div>
                 </div>
             </article>
@@ -531,16 +582,31 @@ function renderStores(page = adminState.pages.stores) {
     renderPagination('storePagination', items.length, page, 'stores', renderStores);
 }
 
-// 3. ABA DE PRODUTOS
+// 3. ABA DE PRODUTOS COM ID VISUAL E FILTRO POR LOJA
 function filteredProducts() { 
     const query = document.getElementById('productSearch').value.toLowerCase().trim(); 
+    const storeFilter = document.getElementById('productStoreFilter')?.value || 'all';
     const category = document.getElementById('productCategoryFilter').value; 
     const stock = document.getElementById('productStockFilter').value; 
+    
     return adminState.products.filter(item => {
-        const matchesQuery = !query || `${item.name || ''} ${item.category || ''} ${item.sellerId?.storeName || ''}`.toLowerCase().includes(query);
+        const shortId = item._id ? `#${item._id.slice(-6).toLowerCase()}` : '';
+        const fullId = (item._id || '').toLowerCase();
+        const sellerId = (typeof item.sellerId === 'object' && item.sellerId !== null) ? item.sellerId._id : item.sellerId;
+        const storeName = item.sellerId?.storeName || '';
+        
+        const matchesQuery = !query || 
+            item.name.toLowerCase().includes(query) || 
+            item.category.toLowerCase().includes(query) || 
+            storeName.toLowerCase().includes(query) ||
+            shortId.includes(query) ||
+            fullId.includes(query);
+            
+        const matchesStore = storeFilter === 'all' || sellerId === storeFilter;
         const matchesCategory = category === 'all' || item.category === category;
         const matchesStock = stock === 'all' || (stock === 'empty' ? item.stock === 0 : item.stock > 0);
-        return matchesQuery && matchesCategory && matchesStock;
+        
+        return matchesQuery && matchesStore && matchesCategory && matchesStock;
     }); 
 }
 
@@ -559,14 +625,20 @@ function renderProducts(page = adminState.pages.products) {
     }
     
     document.getElementById('adminProductsList').innerHTML = pageItems.map(product => {
+        const shortId = product._id ? product._id.slice(-6).toUpperCase() : 'N/A';
+        const storeName = product.sellerId?.storeName || product.sellerId?.name || 'Loja Oficial';
         const stockBadge = product.stock > 0 ? `<span class="badge admin">${product.stock} em estoque</span>` : `<span class="badge blocked">Esgotado</span>`;
         
         return `
             <article class="user-card">
                 <button class="user-card-toggle" type="button" onclick="toggleCard(this.closest('.user-card'))">
                     <div>
-                        <strong>📦 ${escapeHtml(product.name)}</strong>
-                        <div class="user-card-email">${escapeHtml(product.category)} · Loja: ${escapeHtml(product.sellerId?.storeName || 'Oficial')} · <strong>${money(product.price)}</strong></div>
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
+                            <span class="product-id-tag">ID: #${shortId}</span>
+                            <strong>${escapeHtml(product.name)}</strong>
+                            <span class="badge seller">🏪 ${escapeHtml(storeName)}</span>
+                        </div>
+                        <div class="user-card-email">ID completo: <code>${product._id}</code> · Categoria: ${escapeHtml(product.category)} · <strong>${money(product.price)}</strong></div>
                     </div>
                     <div class="user-card-meta">
                         ${stockBadge}
@@ -575,6 +647,10 @@ function renderProducts(page = adminState.pages.products) {
                 </button>
                 <div class="user-card-body">
                     <div class="user-card-grid">
+                        <label>
+                            <span>ID do Produto (Sistema)</span>
+                            <input type="text" value="${product._id}" readonly style="background:#f8fafc; font-family:monospace; color:var(--muted);">
+                        </label>
                         <label>
                             <span>Nome do produto</span>
                             <input data-field="name" type="text" value="${escapeHtml(product.name)}">
@@ -590,6 +666,10 @@ function renderProducts(page = adminState.pages.products) {
                         <label>
                             <span>Quantidade em Estoque</span>
                             <input data-field="stock" type="number" min="0" step="1" value="${product.stock}">
+                        </label>
+                        <label>
+                            <span>Loja Proprietária</span>
+                            <input type="text" value="${escapeHtml(storeName)}" readonly style="background:#f8fafc; color:var(--muted);">
                         </label>
                         <label style="grid-column: 1 / -1;">
                             <span>URL da imagem</span>
@@ -637,6 +717,7 @@ async function saveAdminProduct(productId, button) {
         showNotice('Produto atualizado com sucesso!');
         adminState.products = await api('/seller/products');
         renderProducts();
+        renderStores();
     } catch (error) {
         showNotice(error.message, true);
     } finally {
@@ -647,8 +728,9 @@ async function saveAdminProduct(productId, button) {
 
 // --- EVENT LISTENERS ---
 document.getElementById('logoutButton').addEventListener('click', () => { 
-    localStorage.clear(); 
-    sessionStorage.clear(); 
+    localStorage.removeItem('token');
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('isAuthenticated');
     window.location.replace('loja.html'); 
 });
 
@@ -668,7 +750,7 @@ document.getElementById('productForm').addEventListener('submit', saveProduct);
     if (el) el.addEventListener('input', () => renderStores(1));
 });
 
-['productSearch', 'productCategoryFilter', 'productStockFilter'].forEach(id => {
+['productSearch', 'productStoreFilter', 'productCategoryFilter', 'productStockFilter'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', () => renderProducts(1));
 });
