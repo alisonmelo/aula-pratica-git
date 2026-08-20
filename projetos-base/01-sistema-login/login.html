@@ -9,38 +9,141 @@
 </head>
 <body>
 <div class="login-container">
-    <p style="text-align:center;"><a href="loja.html">← Voltar para a loja</a></p>
+    <a href="loja.html" class="back-to-store">← Voltar para a loja</a>
+    
+    <div class="login-brand">
+        <a href="loja.html">Loja<span>QA</span></a>
+    </div>
+
+    <!-- SEÇÃO DE LOGIN -->
     <div id="section-login">
         <h2>Acesso à LojaQA</h2>
-        <div class="form-group"><label for="email">E-mail</label><input type="email" id="email" placeholder="Digite seu e-mail" required></div>
-        <div class="form-group"><label for="password">Senha</label><div class="password-input-group"><input type="password" id="password" placeholder="Mínimo de 8 caracteres" maxlength="25" required><button type="button" class="toggle-password" onclick="togglePasswordVisibility('password')">👁️</button></div></div>
+        
+        <div class="form-group">
+            <label for="email">E-mail</label>
+            <input type="email" id="email" placeholder="Digite seu e-mail" required autocomplete="email">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Senha</label>
+            <div class="password-input-group">
+                <input type="password" id="password" placeholder="Mínimo de 8 caracteres" maxlength="25" required autocomplete="current-password">
+                <button type="button" class="toggle-password" onclick="togglePasswordVisibility('password')" aria-label="Mostrar ou ocultar senha">
+                    <svg class="icon-eye" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <svg class="icon-eye-off" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                        <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                        <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+                        <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+                        <line x1="2" x2="22" y1="2" y2="22"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
         <button class="btn" id="loginBtn" onclick="attemptLogin()" disabled>Entrar</button>
-        <div class="login-links"><a href="#" onclick="toggleSection('section-register'); return false;">Criar conta</a> | <a href="#" onclick="toggleSection('section-forgot'); return false;">Esqueci minha senha</a></div>
-        <div class="credentials-info"><strong>Massa de dados para QA</strong><br>Admin: admin@system.com / AdminPassword123<br>Cliente: user@system.com / UserPassword123<br>Lojista: lojista@system.com / SellerPass123<br>Bloqueado: blocked@system.com / Blocked123<br>Lento: slow@system.com / SlowPass123</div>
+        
+        <div class="login-links">
+            <a href="#" onclick="toggleSection('section-register'); return false;">Criar conta</a>
+            <span class="divider">|</span>
+            <a href="#" onclick="toggleSection('section-forgot'); return false;">Esqueci minha senha</a>
+        </div>
+        
+        <div class="credentials-info">
+            <strong>Massa de dados para QA:</strong>
+            Admin: <code>admin@system.com</code> / <code>AdminPassword123</code><br>
+            Cliente: <code>user@system.com</code> / <code>UserPassword123</code><br>
+            Lojista: <code>lojista@system.com</code> / <code>SellerPass123</code><br>
+            Bloqueado: <code>blocked@system.com</code> / <code>Blocked123</code><br>
+            Lento: <code>slow@system.com</code> / <code>SlowPass123</code>
+        </div>
     </div>
+
+    <!-- SEÇÃO DE CADASTRO -->
     <div id="section-register" style="display:none;">
         <h2>Criar conta</h2>
-        <div class="form-group"><label for="reg-name">Nome completo</label><input type="text" id="reg-name" maxlength="50" placeholder="Digite seu nome" required></div>
-        <div class="form-group"><label for="reg-email">E-mail</label><input type="email" id="reg-email" placeholder="Digite seu e-mail" required></div>
-        <div class="form-group"><label for="reg-password">Senha</label><div class="password-input-group"><input type="password" id="reg-password" maxlength="25" placeholder="Entre 8 e 25 caracteres" required><button type="button" class="toggle-password" onclick="togglePasswordVisibility('reg-password')">👁️</button></div></div>
-        <div class="form-group"><label for="reg-role">Quero me cadastrar como</label><select id="reg-role"><option value="user">Cliente</option><option value="seller">Lojista / vendedor</option></select></div>
-        <div class="form-group" id="store-name-group" style="display:none;"><label for="reg-store-name">Nome da loja</label><input type="text" id="reg-store-name" maxlength="80" placeholder="Ex.: Minha Tech Store"></div>
+        
+        <div class="form-group">
+            <label for="reg-name">Nome completo</label>
+            <input type="text" id="reg-name" maxlength="50" placeholder="Digite seu nome" required autocomplete="name">
+        </div>
+        
+        <div class="form-group">
+            <label for="reg-email">E-mail</label>
+            <input type="email" id="reg-email" placeholder="Digite seu e-mail" required autocomplete="email">
+        </div>
+        
+        <div class="form-group">
+            <label for="reg-password">Senha</label>
+            <div class="password-input-group">
+                <input type="password" id="reg-password" maxlength="25" placeholder="Entre 8 e 25 caracteres" required autocomplete="new-password">
+                <button type="button" class="toggle-password" onclick="togglePasswordVisibility('reg-password')" aria-label="Mostrar ou ocultar senha">
+                    <svg class="icon-eye" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <svg class="icon-eye-off" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                        <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                        <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+                        <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+                        <line x1="2" x2="22" y1="2" y2="22"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="reg-role">Quero me cadastrar como</label>
+            <select id="reg-role">
+                <option value="user">Cliente</option>
+                <option value="seller">Lojista / vendedor</option>
+            </select>
+        </div>
+        
+        <div class="form-group" id="store-name-group" style="display:none;">
+            <label for="reg-store-name">Nome da loja</label>
+            <input type="text" id="reg-store-name" maxlength="80" placeholder="Ex.: Minha Tech Store">
+        </div>
+        
         <button class="btn" id="registerBtn" onclick="attemptRegister()" disabled>Cadastrar</button>
-        <div class="login-links"><a href="#" onclick="toggleSection('section-login'); return false;">Voltar para login</a></div>
+        
+        <div class="login-links">
+            <a href="#" onclick="toggleSection('section-login'); return false;">Voltar para login</a>
+        </div>
     </div>
+
+    <!-- SEÇÃO ESQUECI A SENHA -->
     <div id="section-forgot" style="display:none;">
-        <h2>Recuperar senha</h2><p>Informe seu e-mail para receber as instruções.</p>
-        <div class="form-group"><label for="forgot-email">E-mail</label><input type="email" id="forgot-email" placeholder="Digite seu e-mail" required></div>
+        <h2>Recuperar senha</h2>
+        <p class="subtitle">Informe seu e-mail para receber as instruções.</p>
+        
+        <div class="form-group">
+            <label for="forgot-email">E-mail</label>
+            <input type="email" id="forgot-email" placeholder="Digite seu e-mail" required autocomplete="email">
+        </div>
+        
         <button class="btn" id="forgotBtn" onclick="attemptForgotPassword()" disabled>Recuperar senha</button>
-        <div class="login-links"><a href="#" onclick="toggleSection('section-login'); return false;">Voltar para login</a></div>
+        
+        <div class="login-links">
+            <a href="#" onclick="toggleSection('section-login'); return false;">Voltar para login</a>
+        </div>
     </div>
-    <div class="error-message" id="errorMessage"></div><div class="status-message" id="statusMessage" style="display:none;"></div>
+
+    <!-- MENSAGENS GLOBAIS -->
+    <div class="error-message" id="errorMessage"></div>
+    <div class="status-message" id="statusMessage"></div>
 </div>
+
 <script src="script.js"></script>
 <script>
     const roleSelect = document.getElementById('reg-role');
     const storeGroup = document.getElementById('store-name-group');
-    roleSelect.addEventListener('change', () => { storeGroup.style.display = roleSelect.value === 'seller' ? 'block' : 'none'; validateRegisterForm(); });
+    roleSelect.addEventListener('change', () => { 
+        storeGroup.style.display = roleSelect.value === 'seller' ? 'block' : 'none'; 
+        validateRegisterForm(); 
+    });
 </script>
 </body>
 </html>

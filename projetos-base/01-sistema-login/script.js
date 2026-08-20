@@ -33,7 +33,19 @@ function validateForgotForm() {
 
 function togglePasswordVisibility(inputId) {
     const input = document.getElementById(inputId);
-    input.type = input.type === 'password' ? 'text' : 'password';
+    if (!input) return;
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+    
+    const container = input.closest('.password-input-group');
+    if (container) {
+        const eyeOpen = container.querySelector('.icon-eye');
+        const eyeOff = container.querySelector('.icon-eye-off');
+        if (eyeOpen && eyeOff) {
+            eyeOpen.style.display = isPassword ? 'none' : 'block';
+            eyeOff.style.display = isPassword ? 'block' : 'none';
+        }
+    }
 }
 
 // --- FUNÇÕES DE INTERFACE ---
