@@ -78,18 +78,47 @@ const UserSchema = new mongoose.Schema({
     password: { type: String, required: true },
     role: { type: String, default: 'user' },
     name: String,
+    storeName: { type: String, default: '' },
     passwordResetToken: String,
     passwordResetExpires: Date
 });
 const User = mongoose.model('User', UserSchema);
-const VALID_ROLES = ['user', 'admin', 'blocked'];
+const ProductSchema = new mongoose.Schema({
+    name: { type: String, required: true, maxlength: 120 },
+    description: { type: String, default: '', maxlength: 1000 },
+    category: { type: String, required: true, maxlength: 60 },
+    price: { type: Number, required: true, min: 0 },
+    stock: { type: Number, required: true, min: 0, default: 0 },
+    image: { type: String, default: '' },
+    sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    active: { type: Boolean, default: true }
+}, { timestamps: true });
+const Product = mongoose.model('Product', ProductSchema);
+
+const OrderSchema = new mongoose.Schema({
+    customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    items: [{
+        productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+        name: String,
+        quantity: { type: Number, required: true, min: 1 },
+        unitPrice: { type: Number, required: true, min: 0 },
+        sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+    }],
+    total: { type: Number, required: true, min: 0 },
+    status: { type: String, enum: ['pending', 'paid', 'shipped', 'delivered', 'cancelled'], default: 'pending' },
+    shippingAddress: { type: String, required: true, maxlength: 300 }
+}, { timestamps: true });
+const Order = mongoose.model('Order', OrderSchema);
+
+const VALID_ROLES = ['user', 'seller', 'admin', 'blocked'];
 
 async function seedDatabase() {
     const defaultUsers = [
         { email: "admin@system.com", password: "AdminPassword123", role: "admin", name: "Administrador" },
         { email: "user@system.com", password: "UserPassword123", role: "user", name: "Usuário Padrão" },
         { email: "blocked@system.com", password: "Blocked123", role: "blocked", name: "Usuário Bloqueado" },
-        { email: "slow@system.com", password: "SlowPass123", role: "user", name: "Usuário Lento" }
+        { email: "slow@system.com", password: "SlowPass123", role: "user", name: "Usuário Lento" },
+        { email: "lojista@system.com", password: "SellerPass123", role: "seller", name: "LojaQA Oficial", storeName: "Vitrine Tech" }
     ];
 
     for (const userData of defaultUsers) {
@@ -109,11 +138,21 @@ async function seedDatabase() {
                     $set: {
                         password: userData.password,
                         role: userData.role,
-                        name: userData.name
+                        name: userData.name,
+                        storeName: userData.storeName || ''
                     }
                 }
             );
         }
+    }
+
+    const seller = await User.findOne({ email: 'lojista@system.com' });
+    if (seller && await Product.countDocuments({ sellerId: seller._id }) === 0) {
+        await Product.insertMany([
+            { name: 'Teclado Mecânico Aurora', description: 'Switches silenciosos e iluminação discreta.', category: 'Periféricos', price: 289.90, stock: 18, sellerId: seller._id },
+            { name: 'Mouse Óptico Atlas', description: 'Sensor preciso para trabalho e jogos.', category: 'Periféricos', price: 119.90, stock: 32, sellerId: seller._id },
+            { name: 'Headset Nexo', description: 'Microfone removível e áudio confortável.', category: 'Áudio', price: 199.90, stock: 12, sellerId: seller._id }
+        ]);
     }
 }
 seedDatabase();
@@ -133,6 +172,16 @@ const verifyToken = (req, res, next) => {
 
 const isAdmin = (req, res, next) => {
     if (req.user.role !== 'admin') return res.status(403).json({ error: "Acesso negado." });
+    next();
+};
+
+const isSeller = (req, res, next) => {
+    if (!['seller', 'admin'].includes(req.user.role)) return res.status(403).json({ error: "Acesso exclusivo para lojistas." });
+    next();
+};
+
+const isCustomer = (req, res, next) => {
+    if (!['user', 'seller', 'admin'].includes(req.user.role)) return res.status(403).json({ error: "Acesso negado." });
     next();
 };
 
@@ -259,7 +308,162 @@ app.post('/api/reset-password', async (req, res, next) => {
     }
 });
 
-// 4. LISTAR USUÁRIOS
+// 4. CATÁLOGO PÚBLICO
+app.get('/api/products', async (req, res, next) => {
+    try {
+        const { search = '', category = '', minPrice, maxPrice } = req.query;
+        const filter = { active: true };
+        if (search.trim()) filter.$or = [
+            { name: { $regex: search.trim(), $options: 'i' } },
+            { description: { $regex: search.trim(), $options: 'i' } }
+        ];
+        if (category) filter.category = category;
+        if (minPrice || maxPrice) {
+            filter.price = {};
+            if (minPrice) filter.price.$gte = Number(minPrice);
+            if (maxPrice) filter.price.$lte = Number(maxPrice);
+        }
+        const products = await Product.find(filter).populate('sellerId', 'storeName name');
+        res.status(200).json(products);
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.get('/api/products/categories', async (req, res, next) => {
+    try {
+        res.status(200).json(await Product.distinct('category', { active: true }));
+    } catch (error) {
+        next(error);
+    }
+});
+
+// 5. CHECKOUT E PEDIDOS DO CLIENTE
+app.post('/api/orders', verifyToken, isCustomer, async (req, res, next) => {
+    try {
+        const { items, shippingAddress } = req.body;
+        if (!Array.isArray(items) || !items.length || !shippingAddress?.trim()) {
+            return res.status(400).json({ error: "Itens e endereço de entrega são obrigatórios." });
+        }
+
+        const productIds = items.map(item => item.productId);
+        const products = await Product.find({ _id: { $in: productIds }, active: true });
+        const productMap = new Map(products.map(product => [product._id.toString(), product]));
+        const orderItems = [];
+
+        for (const item of items) {
+            const product = productMap.get(item.productId);
+            const quantity = Number(item.quantity);
+            if (!product || !Number.isInteger(quantity) || quantity < 1) {
+                return res.status(400).json({ error: "Produto ou quantidade inválida." });
+            }
+            if (product.stock < quantity) {
+                return res.status(409).json({ error: `Estoque insuficiente para ${product.name}.` });
+            }
+            orderItems.push({
+                productId: product._id,
+                name: product.name,
+                quantity,
+                unitPrice: product.price,
+                sellerId: product.sellerId
+            });
+        }
+
+        const total = orderItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+        const order = await Order.create({
+            customerId: req.user.id,
+            items: orderItems,
+            total,
+            shippingAddress: shippingAddress.trim()
+        });
+
+        await Promise.all(orderItems.map(item => Product.updateOne(
+            { _id: item.productId },
+            { $inc: { stock: -item.quantity } }
+        )));
+
+        res.status(201).json({ message: "Pedido criado com sucesso.", order });
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.get('/api/orders/me', verifyToken, isCustomer, async (req, res, next) => {
+    try {
+        res.status(200).json(await Order.find({ customerId: req.user.id }).sort({ createdAt: -1 }));
+    } catch (error) {
+        next(error);
+    }
+});
+
+// 6. PAINEL DO LOJISTA
+app.get('/api/seller/products', verifyToken, isSeller, async (req, res, next) => {
+    try {
+        const filter = req.user.role === 'admin' ? {} : { sellerId: req.user.id };
+        res.status(200).json(await Product.find(filter).sort({ createdAt: -1 }));
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.post('/api/seller/products', verifyToken, isSeller, async (req, res, next) => {
+    try {
+        const { name, description, category, price, stock, image } = req.body;
+        const sellerId = req.user.role === 'admin' ? req.body.sellerId : req.user.id;
+        if (req.user.role === 'admin' && !sellerId) {
+            return res.status(400).json({ error: "O administrador deve informar a loja proprietária do produto." });
+        }
+        if (!name?.trim() || !category?.trim() || !Number.isFinite(Number(price)) || Number(price) < 0 || !Number.isInteger(Number(stock)) || Number(stock) < 0) {
+            return res.status(400).json({ error: "Nome, categoria, preço e estoque válidos são obrigatórios." });
+        }
+        const product = await Product.create({
+            name: name.trim(), description: description?.trim() || '', category: category.trim(),
+            price: Number(price), stock: Number(stock), image: image?.trim() || '', sellerId
+        });
+        res.status(201).json({ message: "Produto criado com sucesso.", product });
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.put('/api/seller/products/:id', verifyToken, isSeller, async (req, res, next) => {
+    try {
+        const filter = req.user.role === 'admin' ? { _id: req.params.id } : { _id: req.params.id, sellerId: req.user.id };
+        const allowed = ['name', 'description', 'category', 'price', 'stock', 'image', 'active'];
+        const update = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)));
+        if (update.price !== undefined) update.price = Number(update.price);
+        if (update.stock !== undefined) update.stock = Number(update.stock);
+        const product = await Product.findOneAndUpdate(filter, update, { new: true, runValidators: true });
+        if (!product) return res.status(404).json({ error: "Produto não encontrado ou sem permissão." });
+        res.status(200).json({ message: "Produto atualizado com sucesso.", product });
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.get('/api/seller/orders', verifyToken, isSeller, async (req, res, next) => {
+    try {
+        const filter = req.user.role === 'admin' ? {} : { 'items.sellerId': req.user.id };
+        res.status(200).json(await Order.find(filter).populate('customerId', 'name email').sort({ createdAt: -1 }));
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.put('/api/seller/orders/:id/status', verifyToken, isSeller, async (req, res, next) => {
+    try {
+        const validStatuses = ['pending', 'paid', 'shipped', 'delivered', 'cancelled'];
+        if (!validStatuses.includes(req.body.status)) return res.status(400).json({ error: "Status de pedido inválido." });
+        const filter = req.user.role === 'admin' ? { _id: req.params.id } : { _id: req.params.id, 'items.sellerId': req.user.id };
+        const order = await Order.findOneAndUpdate(filter, { status: req.body.status }, { new: true });
+        if (!order) return res.status(404).json({ error: "Pedido não encontrado ou sem permissão." });
+        res.status(200).json({ message: "Status atualizado.", order });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// 7. LISTAR USUÁRIOS
 app.get('/api/users', verifyToken, isAdmin, async (req, res, next) => {
     try {
         const users = await User.find({}, '-password');
@@ -273,7 +477,7 @@ app.get('/api/users', verifyToken, isAdmin, async (req, res, next) => {
 app.put('/api/users/:id', verifyToken, isAdmin, async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { email, role, name, password, adminPassword } = req.body;
+        const { email, role, name, password, adminPassword, storeName } = req.body;
         const update = {};
 
         if (email !== undefined && email !== '') {
@@ -282,6 +486,10 @@ app.put('/api/users/:id', verifyToken, isAdmin, async (req, res, next) => {
 
         if (name !== undefined) {
             update.name = name.trim();
+        }
+
+        if (storeName !== undefined) {
+            update.storeName = storeName.trim();
         }
 
         if (password) {
@@ -293,10 +501,10 @@ app.put('/api/users/:id', verifyToken, isAdmin, async (req, res, next) => {
                 return res.status(400).json({ error: "Role inválida. Use user, admin ou blocked." });
             }
 
-            if (role === 'admin') {
+            if (role === 'admin' || role === 'seller') {
                 const adminUser = await User.findById(req.user.id);
                 if (!adminUser || adminUser.password !== (adminPassword || '')) {
-                    return res.status(401).json({ error: "Senha do administrador inválida para promover alguém a admin." });
+                    return res.status(401).json({ error: "Senha do administrador inválida para alterar este perfil." });
                 }
             }
 

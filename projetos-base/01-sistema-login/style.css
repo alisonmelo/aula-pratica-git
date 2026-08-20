@@ -127,6 +127,7 @@ body {
 }
 .badge.admin { background: #dcfce7; color: #166534; }
 .badge.blocked { background: #fee2e2; color: #991b1b; }
+.badge.seller { background: #fef3c7; color: #92400e; }
 
 .admin-toolbar {
     display: flex;

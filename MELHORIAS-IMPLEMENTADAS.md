@@ -131,13 +131,13 @@ curl -X POST http://localhost:3000/api/register \
 - **Arquivo**: `index.html`
 - **Aplicado em**:
   - Nome de usuário: `maxlength="50"`
-  - Campos de senha: `maxlength="12"`
+  - Campos de senha: `maxlength="25"`
 
 #### B. **Validação Backend**
 - **Arquivo**: `server.js`
 - **Limites**:
   - Nome: máx 50 caracteres
-  - Senha: 8-12 caracteres (min-max)
+  - Senha: 8-25 caracteres (min-max)
   - Email: Formato validado
 
 #### C. **Estados do Botão**
@@ -169,7 +169,7 @@ curl -X POST http://localhost:3000/api/register \
 | Campo | Regra | Erro |
 |-------|-------|------|
 | Email | Regex + Requerido | "E-mail inválido..." |
-| Senha | 8-12 caracteres | "Senha deve conter..." |
+| Senha | 8-25 caracteres | "Senha deve conter..." |
 | Nome | até 50 caracteres | "Nome não pode..." |
 | Botão | Todos os campos válidos | Desabilitado (opacity 0.6) |
 
@@ -371,7 +371,7 @@ npm start
    - Clicar toggle 👁️ → Senha fica visível
 
 2. **Register Form**
-   - Nome com >100 char → Validação falha
+  - Nome com >50 char → Validação falha
    - Email sem @ → Botão desabilitado
    - Senha <8 char → Botão desabilitado
 
