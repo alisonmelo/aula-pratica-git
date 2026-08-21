@@ -2,23 +2,22 @@
 
 > **Ambiente Pedagógico de Qualidade e Testes de Software**  
 > **Programa FAP 2026 - Turma 4 | Teste de Software**  
-> **Projeto Final - Módulo 01 (Unidade 08)**  
+> **Projeto Final - Módulo 01 (Unidade 08) — Versão 3.0 Final**  
 > **Orientador:** Prof. Alison Melo  
-> **Versão:** 3.0 (Alinhado à Ementa Oficial do Módulo 01: Técnicas, Heurísticas, BDD, Não-Funcionais e Gestão de Testes)
+> **Evolução do Sistema:** Evolução da antiga Versão 2.0 (Sistema de Login/Cadastro) para a **Versão 3.0 Final (Plataforma Completa de E-commerce Multi-Perfil LojaQA)**.
 
 ---
 
-## 1. Contextualização do Sistema (Visão de Negócio)
+## 1. Contextualização do Sistema (Visão de Negócio & Evolução)
 
-* **Nome do Sistema:** LojaQA E-commerce Platform
-* **Público-Alvo:** Consumidores finais de produtos eletrônicos/tecnologia e lojistas parceiros (*Marketplace*).
-* **Importância para o Negócio:** Plataforma central de geração de receita, catálogo de produtos, integração de meios de pagamento digitais (PIX, Cartão e Boleto) e logística de entrega integrada com os Correios.
-* **Arquitetura da Aplicação:**
-  * **Vitrine Pública:** `loja.html` (Catálogo, busca, filtros e carrinho persistente);
-  * **Autenticação Segura:** `login.html` (Login com rate-limiting, cadastro e recuperação de senha);
-  * **Checkout Dedicado:** `checkout.html` (Validação de CPF por Módulo 11, ViaCEP, frete regional e pagamentos);
-  * **Painel Multi-Perfil:** `painel.html` (Clientes, Lojistas e Administrador);
-  * **Backend REST:** Node.js/Express e MongoDB com autenticação JWT.
+* **Nome do Sistema:** LojaQA E-commerce Marketplace (Versão 3.0)
+* **Histórico de Evolução:** O sistema que na Versão 2.0 era apenas um módulo de autenticação e gestão de usuários agora evoluiu para uma plataforma completa de comércio eletrônico.
+* **Escopo de Regressão Obrigatória:** Todas as regras da Versão 2.0 (Login com bloqueio por tentativas, Cadastro com e-mail único, Esqueci a Senha, Logout Seguro e Route Guards) devem ser retestadas para garantir que a chegada do e-commerce não introduziu efeitos colaterais.
+* **Escopo de Novas Funcionalidades (V3.0):**
+  * **Vitrine Pública & Catálogo (`loja.html`):** Busca em tempo real, filtros combinados de categoria/preço e controle visual de esgotados;
+  * **Carrinho Drawer:** Persistência no `localStorage`, controle dinâmico de estoque e recalculo instantâneo de subtotal;
+  * **Checkout Dedicado (`checkout.html`):** Consulta automática ao **ViaCEP**, validação matemática de CPF por **Módulo 11**, cupons de desconto, regras de frete regional e simulações financeiras (Cartão, PIX 5% OFF e Boleto);
+  * **Painéis Multi-Perfil RBAC (`painel.html`):** Gestão de pedidos e rastreio para Clientes, gestão de estoque exclusiva para Lojistas (*Multi-Tenancy*) e moderação global para Administradores.
 
 ---
 
@@ -234,3 +233,155 @@ Funcionalidade: Aplicação de Cupons Promocionais no Checkout
 | Cálculo de frete e validação de CPF | **Automatizável (Unitário / API)** | Lógica determinística e regras matemáticas com baixo custo de automação. |
 | Usabilidade visual e acessibilidade de cores | **Manual (Exploratório)** | Depende de julgamento humano, percepção visual e testes de experiência. |
 | Fluxo completo de compra (End-to-End) | **Automatizável (Cypress / Playwright)** | Teste crítico de fumaça e regressão contínua para pipelines de CI/CD. |
+
+---
+
+## 11. Documentação da API REST para Testes de Integração & Postman
+
+> **🌐 Base URL Oficial (Nuvem / Render):** `https://api-qa-fap2026.onrender.com/api`  
+> **💻 Base URL Local (Caso execute o backend na sua máquina):** `http://localhost:3000/api`  
+> **Formato das Mensagens:** `Content-Type: application/json`  
+> **Autenticação:** Header `Authorization: Bearer <token_jwt>` (obtido após login bem-sucedido).
+
+---
+
+### 🔑 11.1 Módulo de Autenticação & Gestão de Acessos
+
+#### `POST /api/login`
+* **Descrição:** Autentica um usuário e retorna o Token JWT e os dados do perfil. Possui proteção de *Rate Limiting* (máximo 3 tentativas por minuto).
+* **Corpo da Requisição (JSON):**
+  ```json
+  {
+    "email": "user@system.com",
+    "password": "UserPassword123"
+  }
+  ```
+* **Respostas Esperadas:**
+  * `200 OK`: `{ "message": "Login realizado com sucesso", "token": "...", "user": { "id": "...", "name": "...", "email": "...", "role": "user" } }`
+  * `400 Bad Request`: `{ "error": "Informe e-mail e senha" }`
+  * `401 Unauthorized`: `{ "error": "Credenciais inválidas" }`
+  * `403 Forbidden`: `{ "error": "Usuário bloqueado pelo administrador" }`
+  * `429 Too Many Requests`: `{ "error": "Muitas tentativas. Aguarde 1 minuto." }`
+
+#### `POST /api/register`
+* **Descrição:** Realiza o cadastro de um novo usuário na plataforma.
+* **Corpo da Requisição (JSON):**
+  ```json
+  {
+    "name": "Nome do Aluno QA",
+    "email": "novoaluno@system.com",
+    "password": "SenhaSegura123",
+    "role": "user",
+    "storeName": ""
+  }
+  ```
+* **Respostas Esperadas:**
+  * `201 Created`: `{ "message": "Usuário registrado com sucesso!", "user": { ... } }`
+  * `400 Bad Request`: `{ "error": "E-mail já cadastrado" }` ou validação de campos.
+
+#### `POST /api/forgot-password`
+* **Descrição:** Solicita redefinição de senha com resposta genérica segura.
+* **Corpo da Requisição (JSON):** `{ "email": "user@system.com" }`
+* **Resposta Esperada:** `200 OK` `{ "message": "Se o e-mail estiver cadastrado, um link de recuperação foi enviado." }`
+
+---
+
+### 📦 11.2 Módulo de Catálogo & Vitrine (Público)
+
+#### `GET /api/products`
+* **Descrição:** Lista produtos ativos para a vitrine com suporte a filtros via Query Parameters.
+* **Query Params Suportados:**
+  * `search` (string): Busca parcial por nome/descrição;
+  * `category` (string): Filtra por categoria exata;
+  * `maxPrice` (número): Filtra produtos com preço até o valor máximo.
+* **Exemplo de URL:** `GET /api/products?category=Periféricos&maxPrice=300`
+* **Resposta Esperada:** `200 OK` com array de produtos `[{ "_id": "...", "name": "...", "price": 250, "stock": 10, "sellerId": { ... } }]`.
+
+#### `GET /api/products/categories`
+* **Descrição:** Retorna a lista de categorias disponíveis no catálogo.
+* **Resposta Esperada:** `200 OK` `["Periféricos", "Monitores", "Áudio", "Acessórios"]`.
+
+---
+
+### 🛒 11.3 Módulo de Pedidos (Cliente - Role `user`)
+
+#### `POST /api/orders`
+* **Autenticação Obrigatória:** `Authorization: Bearer <token_cliente>`
+* **Descrição:** Cria um novo pedido, reduz o estoque dos produtos de forma atômica e registra o endereço.
+* **Corpo da Requisição (JSON):**
+  ```json
+  {
+    "items": [
+      {
+        "productId": "64f1a2b3c4d5e6f7a8b9c0d1",
+        "quantity": 2
+      }
+    ],
+    "shippingAddress": "Av. Paulista, 1000 - Bela Vista, São Paulo/SP (CEP: 01310-100)",
+    "total": 500.00
+  }
+  ```
+* **Respostas Esperadas:**
+  * `201 Created`: `{ "message": "Pedido criado com sucesso!", "order": { "_id": "...", "status": "aprovado", "total": 500.00, ... } }`
+  * `400 Bad Request`: `{ "error": "Estoque insuficiente para o produto X" }` ou carrinho vazio.
+  * `403 Forbidden`: Se enviado por perfil `seller` ou `admin` (compras são restritas a clientes).
+
+#### `GET /api/orders/me`
+* **Autenticação Obrigatória:** `Authorization: Bearer <token_cliente>`
+* **Descrição:** Retorna todos os pedidos realizados pelo cliente logado.
+* **Resposta Esperada:** `200 OK` com a lista dos pedidos do próprio usuário.
+
+---
+
+### 🏪 11.4 Módulo do Lojista (Role `seller`)
+
+#### `GET /api/seller/products`
+* **Autenticação Obrigatória:** `Authorization: Bearer <token_lojista>`
+* **Descrição:** Retorna exclusivamente os produtos pertencentes à loja do lojista autenticado (*Multi-Tenancy*).
+* **Resposta Esperada:** `200 OK` `[{ "_id": "...", "name": "...", "stock": 15, ... }]`.
+
+#### `POST /api/seller/products`
+* **Autenticação Obrigatória:** `Authorization: Bearer <token_lojista>`
+* **Descrição:** Cadastra um novo produto vinculado à loja do usuário.
+* **Corpo da Requisição (JSON):**
+  ```json
+  {
+    "name": "Headset Gamer 7.1",
+    "price": 320.00,
+    "stock": 25,
+    "category": "Áudio",
+    "description": "Headset com cancelamento de ruído ativo",
+    "image": "https://exemplo.com/headset.jpg"
+  }
+  ```
+* **Resposta Esperada:** `201 Created` `{ "message": "Produto criado com sucesso!", "product": { ... } }`.
+
+#### `PUT /api/seller/orders/:id/status`
+* **Autenticação Obrigatória:** `Authorization: Bearer <token_lojista>`
+* **Descrição:** Altera o status de entrega do pedido.
+* **Corpo da Requisição (JSON):** `{ "status": "enviado" }`
+* **Valores aceitos para status:** `"pendente"`, `"aprovado"`, `"enviado"`, `"entregue"`, `"cancelado"`.
+
+---
+
+### 🛡️ 11.5 Módulo de Administração (Role `admin`)
+
+#### `GET /api/users`
+* **Autenticação Obrigatória:** `Authorization: Bearer <token_admin>`
+* **Descrição:** Retorna a lista completa de usuários cadastrados no banco de dados.
+* **Resposta Esperada:** `200 OK` com array de todos os usuários.
+
+#### `PUT /api/users/:id`
+* **Autenticação Obrigatória:** `Authorization: Bearer <token_admin>`
+* **Descrição:** Atualiza o perfil ou bloqueia/desbloqueia um usuário (exige senha mestra de admin).
+* **Corpo da Requisição (JSON):**
+  ```json
+  {
+    "role": "blocked",
+    "adminPassword": "AdminPassword123"
+  }
+  ```
+* **Respostas Esperadas:**
+  * `200 OK`: `{ "message": "Usuário atualizado com sucesso!", "user": { ... } }`
+  * `401 Unauthorized`: `{ "error": "Senha administrativa incorreta" }`
+
