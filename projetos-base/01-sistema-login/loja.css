@@ -73,6 +73,34 @@ nav a:hover {
     font-size: 13px;
     color: var(--muted);
     font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.header-role-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+
+.header-role-badge.admin {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.header-role-badge.seller {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.header-role-badge.user {
+    background: #e0f2fe;
+    color: #075985;
 }
 
 .ghost-button-small {
@@ -387,6 +415,27 @@ main {
 .primary-button:disabled { 
     opacity: 0.45; 
     cursor: not-allowed; 
+}
+
+.btn-view-only {
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px dashed #cbd5e1 !important;
+    cursor: pointer !important;
+    font-size: 13px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: none !important;
+    transition: all 0.2s ease !important;
+}
+
+.btn-view-only:hover {
+    background: #e2e8f0 !important;
+    color: #1e293b !important;
+    border-color: #94a3b8 !important;
+    transform: translateY(-1px);
 }
 
 .empty-state, .loading-state { 
