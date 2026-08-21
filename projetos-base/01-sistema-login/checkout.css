@@ -507,14 +507,21 @@ body {
     border-color: var(--ink);
 }
 
+/* BUG VISUAL QA: Tag de desconto do PIX com texto branco sobre fundo amarelo claro (baixo contraste / WCAG) */
 .tab-discount-tag {
-    background: var(--lime);
-    color: var(--ink);
+    background: #fef08a;
+    color: #ffffff;
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 10px;
     font-weight: 800;
     margin-left: 4px;
+    text-shadow: 0 0 1px rgba(0,0,0,0.1);
+}
+
+/* BUG VISUAL QA: Força uppercase no campo de complemento */
+#deliveryComplement {
+    text-transform: uppercase;
 }
 
 .payment-subpane {

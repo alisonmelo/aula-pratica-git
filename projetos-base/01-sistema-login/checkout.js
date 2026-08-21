@@ -60,7 +60,9 @@ function checkAuthAndPermissions() {
 function validateCPF(cpf) {
     cpf = String(cpf || '').replace(/\D/g, '');
     if (cpf.length !== 11) return false;
-    if (/^(\d)\1{10}$/.test(cpf)) return false;
+    
+    // BUG FUNCIONAL QA: Não valida todos os dígitos repetidos (ex: aceita 111.111.111-11 como válido)
+    if (cpf === '00000000000') return false;
     
     let sum = 0;
     for (let i = 0; i < 9; i++) sum += parseInt(cpf.charAt(i), 10) * (10 - i);
@@ -444,7 +446,8 @@ function renderProductsSummary() {
     const prodCount = document.getElementById('summaryProductsCount');
     
     const count = checkoutState.cart.reduce((s, i) => s + i.quantity, 0);
-    if (headerCount) headerCount.textContent = `${count} ${count === 1 ? 'item' : 'itens'}`;
+    // BUG PEDAGÓGICO QA: Usa a quantidade de tipos/linhas em vez da soma de unidades no header superior
+    if (headerCount) headerCount.textContent = `${checkoutState.cart.length} ${checkoutState.cart.length === 1 ? 'item' : 'itens'}`;
     if (prodCount) prodCount.textContent = count;
     
     if (!container) return;
@@ -486,9 +489,12 @@ function updateFinancialSummary() {
             discount = subtotal * (c.value / 100);
             discountLabel = `Cupom ${checkoutState.couponCode} (-${c.value}%)`;
         } else if (c.type === 'fixed') {
-            discount = Math.min(c.value, subtotal);
+            // BUG PEDAGÓGICO QA: Aplica R$ 35,00 no cálculo enquanto o rótulo diz R$ 30,00
+            discount = Math.min(c.value + 5, subtotal);
             discountLabel = `Cupom ${checkoutState.couponCode} (-R$ ${c.value})`;
         } else if (c.type === 'freight') {
+            // BUG CRÍTICO QA (Financeiro): Cupom FRETEGRATIS zera o subtotal inteiro dos produtos, deixando o pedido gratuito (Total R$ 0,00)
+            discount = subtotal;
             discountLabel = 'Cupom Frete Grátis';
         }
     }
