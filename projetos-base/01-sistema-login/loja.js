@@ -28,15 +28,28 @@ function configureStoreUser() {
     const userGreeting = document.getElementById('userGreeting');
     const accountLink = document.getElementById('accountLink');
     const navLogoutBtn = document.getElementById('navLogoutBtn');
+    const cartButton = document.getElementById('cartButton');
 
     if (token && user) {
         if (loginLink) loginLink.style.display = 'none';
         if (userNav) userNav.style.display = 'inline-flex';
-        if (userGreeting) userGreeting.textContent = `Olá, ${user.name ? user.name.split(' ')[0] : 'Usuário'}`;
+        
+        const roleLabel = user.role === 'admin' ? 'ADMIN' : user.role === 'seller' ? 'LOJISTA' : 'CLIENTE';
+        const roleClass = user.role === 'admin' ? 'admin' : user.role === 'seller' ? 'seller' : 'user';
+        
+        if (userGreeting) {
+            userGreeting.innerHTML = `Olá, <strong>${escapeHtml(user.name ? user.name.split(' ')[0] : 'Usuário')}</strong> <span class="header-role-badge ${roleClass}">${roleLabel}</span>`;
+        }
+        
         if (accountLink) {
             accountLink.href = 'painel.html';
             accountLink.textContent = user.role === 'admin' ? 'Painel Admin' : user.role === 'seller' ? 'Minha Loja' : 'Meu Painel';
         }
+        
+        if (cartButton && (user.role === 'seller' || user.role === 'admin')) {
+            cartButton.title = `Perfil ${roleLabel}: Acesso apenas para visualização do catálogo`;
+        }
+        
         if (navLogoutBtn) {
             navLogoutBtn.addEventListener('click', () => {
                 localStorage.removeItem('token');
@@ -94,9 +107,34 @@ function renderProducts() {
         return;
     }
     
+    const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    const isSeller = user && user.role === 'seller';
+    const isAdmin = user && user.role === 'admin';
+    
     grid.innerHTML = state.products.map(product => {
         const visualId = formatProductId(product._id);
         const storeName = product.sellerId?.storeName || product.sellerId?.name || 'Loja Parceira';
+        
+        let actionButtonHtml = '';
+        if (isSeller) {
+            actionButtonHtml = `
+                <button class="primary-button btn-view-only" type="button" onclick="showToast('🏪 Perfil Lojista: permitido apenas visualização. Compras são exclusivas de clientes.')" title="Perfil Lojista: Apenas visualização de catálogo">
+                    👁️ Modo Lojista (Apenas visualização)
+                </button>
+            `;
+        } else if (isAdmin) {
+            actionButtonHtml = `
+                <button class="primary-button btn-view-only" type="button" onclick="showToast('🛡️ Perfil Administrador: permitido apenas visualização. Compras são exclusivas de clientes.')" title="Perfil Administrador: Apenas visualização de catálogo">
+                    👁️ Modo Admin (Apenas visualização)
+                </button>
+            `;
+        } else {
+            actionButtonHtml = `
+                <button class="primary-button" type="button" onclick="addToCart('${product._id}')" ${product.stock < 1 ? 'disabled' : ''}>
+                    ${product.stock ? 'Adicionar ao carrinho' : 'Fora de estoque'}
+                </button>
+            `;
+        }
         
         return `
             <article class="product-card">
@@ -116,9 +154,7 @@ function renderProducts() {
                         <strong>${money(product.price)}</strong>
                         <span class="${product.stock > 0 ? 'stock-available' : 'stock-empty'}">${product.stock > 0 ? `${product.stock} em estoque` : 'Esgotado'}</span>
                     </div>
-                    <button class="primary-button" type="button" onclick="addToCart('${product._id}')" ${product.stock < 1 ? 'disabled' : ''}>
-                        ${product.stock ? 'Adicionar ao carrinho' : 'Fora de estoque'}
-                    </button>
+                    ${actionButtonHtml}
                 </div>
             </article>
         `;
@@ -131,6 +167,14 @@ function persistCart() {
 }
 
 function addToCart(productId) {
+    const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    if (user && user.role === 'seller') {
+        return showToast('🏪 Lojistas possuem acesso apenas para visualização do catálogo e não podem comprar.');
+    }
+    if (user && user.role === 'admin') {
+        return showToast('🛡️ Administradores possuem acesso apenas para visualização e não podem comprar.');
+    }
+
     const product = state.products.find(item => item._id === productId);
     if (!product) return;
     const item = state.cart.find(entry => entry.productId === productId);
@@ -156,8 +200,24 @@ function changeQuantity(productId, amount) {
 function renderCart() {
     const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
     const total = state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    const isSellerOrAdmin = user && (user.role === 'seller' || user.role === 'admin');
+
     document.getElementById('cartCount').textContent = count;
     document.getElementById('cartTotal').textContent = money(total);
+    
+    const checkoutBtn = document.getElementById('checkoutButton');
+    if (checkoutBtn) {
+        if (isSellerOrAdmin) {
+            checkoutBtn.disabled = true;
+            checkoutBtn.textContent = user.role === 'seller' ? 'Indisponível para Lojistas' : 'Indisponível para Administradores';
+            checkoutBtn.title = 'Apenas contas de Clientes podem finalizar pedidos.';
+        } else {
+            checkoutBtn.disabled = false;
+            checkoutBtn.textContent = 'Continuar para checkout';
+            checkoutBtn.title = '';
+        }
+    }
     
     document.getElementById('cartItems').innerHTML = state.cart.length ? state.cart.map(item => `
         <div class="cart-item">
@@ -188,6 +248,13 @@ function closeCart() {
 }
 
 function checkout() {
+    const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    if (user && user.role === 'seller') {
+        return showToast('🏪 Conta de Lojista: você pode visualizar produtos, mas não realizar compras.');
+    }
+    if (user && user.role === 'admin') {
+        return showToast('🛡️ Conta de Administrador: você pode visualizar produtos, mas não realizar compras.');
+    }
     if (!state.cart.length) return showToast('Adicione pelo menos um produto para continuar.');
     if (!localStorage.getItem('token')) {
         showToast('Faça login para finalizar a compra.');

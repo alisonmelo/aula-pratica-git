@@ -121,6 +121,9 @@ async function loadOrders() {
 
 async function submitCheckout(event) {
     event.preventDefault();
+    if (user.role !== 'user') {
+        return showNotice('Apenas contas com perfil de Cliente podem finalizar compras.', true);
+    }
     const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
     if (!cart.length) return showNotice('Seu carrinho está vazio.', true);
     
@@ -774,6 +777,10 @@ document.getElementById('productForm').addEventListener('submit', saveProduct);
 configurePanel();
 if (user.role === 'user') loadOrders();
 if (user.role === 'seller') loadSellerData();
-if (user.role === 'user' && window.location.hash === '#checkout') {
-    document.getElementById('checkoutSection').classList.remove('hidden');
+if (window.location.hash === '#checkout') {
+    if (user.role === 'user') {
+        document.getElementById('checkoutSection').classList.remove('hidden');
+    } else {
+        showNotice('Seu perfil (' + (user.role === 'seller' ? 'Lojista' : 'Administrador') + ') tem permissão apenas para gerenciamento e não pode realizar compras.', true);
+    }
 }
