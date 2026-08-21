@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <title>Painel | LojaQA</title>
+    <link rel="stylesheet" href="painel.css">
+</head>
+<body>
+    <header class="panel-header">
+        <a class="brand" href="loja.html">Loja<span>QA</span></a>
+        <div class="header-actions">
+            <span id="userSummary"></span>
+            <button id="logoutButton" class="ghost-button" type="button">Sair</button>
+        </div>
+    </header>
+
+    <main class="panel-layout">
+        <aside class="panel-nav">
+            <p class="eyebrow">ÁREA AUTENTICADA</p>
+            <h1 id="panelTitle">Meu painel</h1>
+            <span class="role-badge" id="roleBadge"></span>
+            <nav id="panelNav"></nav>
+        </aside>
+
+        <section class="panel-content">
+            <div id="notice" class="notice"></div>
+
+            <!-- SEÇÃO DE PERFIL -->
+            <section id="profileSection" class="panel-section">
+                <div class="section-title">
+                    <div>
+                        <p class="eyebrow">CONTA</p>
+                        <h2>Seu perfil</h2>
+                    </div>
+                </div>
+                <div class="metric-grid" id="profileMetrics"></div>
+            </section>
+
+            <!-- SEÇÃO DE PEDIDOS DO CLIENTE -->
+            <section id="ordersSection" class="panel-section hidden">
+                <div class="section-title">
+                    <div>
+                        <p class="eyebrow">HISTÓRICO</p>
+                        <h2>Meus pedidos</h2>
+                    </div>
+                </div>
+                <div id="ordersList" class="data-list"></div>
+            </section>
+
+
+
+            <!-- SEÇÃO DO LOJISTA -->
+            <section id="sellerSection" class="panel-section hidden">
+                <div class="section-title">
+                    <div>
+                        <p class="eyebrow">LOJA</p>
+                        <h2>Minha loja</h2>
+                    </div>
+                    <button class="primary-button" id="newProductButton" type="button">Novo produto</button>
+                </div>
+                <form id="productForm" class="product-form hidden">
+                    <input id="productId" type="hidden">
+                    <input id="productName" maxlength="120" placeholder="Nome do produto" required>
+                    <input id="productCategory" maxlength="60" placeholder="Categoria" required>
+                    <input id="productPrice" type="number" min="0" step="0.01" placeholder="Preço" required>
+                    <input id="productStock" type="number" min="0" step="1" placeholder="Estoque" required>
+                    <textarea id="productDescription" maxlength="1000" placeholder="Descrição"></textarea>
+                    <input id="productImage" type="url" placeholder="URL da imagem">
+                    <div>
+                        <button class="primary-button" type="submit">Salvar produto</button>
+                        <button class="ghost-button" id="cancelProductButton" type="button">Cancelar</button>
+                    </div>
+                </form>
+                <div id="sellerProducts" class="data-list"></div>
+                <div class="section-title subheading">
+                    <div>
+                        <p class="eyebrow">OPERAÇÃO</p>
+                        <h2>Pedidos da loja</h2>
+                    </div>
+                </div>
+                <div id="sellerOrders" class="data-list"></div>
+            </section>
+
+            <!-- SEÇÃO DE ADMINISTRAÇÃO ESTILO DASHBOARD -->
+            <section id="adminSection" class="panel-section hidden">
+                <div class="section-title">
+                    <div>
+                        <p class="eyebrow">PLATAFORMA</p>
+                        <h2>Administração do Sistema</h2>
+                        <p class="section-description">Gerencie contas de usuários, lojistas e o catálogo de produtos com ferramentas completas.</p>
+                    </div>
+                </div>
+
+                <!-- ABAS DE NAVEGAÇÃO ADMIN -->
+                <div class="admin-tabs">
+                    <button class="admin-tab active" data-tab="users" onclick="switchAdminTab('users')">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Usuários <span id="userCountBadge" class="badge-count">0</span>
+                    </button>
+                    <button class="admin-tab" data-tab="stores" onclick="switchAdminTab('stores')">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                        Lojas <span id="storeCountBadge" class="badge-count">0</span>
+                    </button>
+                    <button class="admin-tab" data-tab="products" onclick="switchAdminTab('products')">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                        Produtos <span id="productCountBadge" class="badge-count">0</span>
+                    </button>
+                </div>
+
+                <!-- ABA 1: GERENCIAMENTO DE USUÁRIOS (ESTILO DASHBOARD) -->
+                <div id="adminTabUsers" class="admin-tab-content">
+                    <div class="admin-toolbar">
+                        <input id="adminUserSearch" type="search" placeholder="Buscar por nome ou e-mail...">
+                        <select id="adminUserRole">
+                            <option value="all">Todos os perfis</option>
+                            <option value="user">Clientes</option>
+                            <option value="seller">Lojistas</option>
+                            <option value="admin">Administradores</option>
+                            <option value="blocked">Bloqueados</option>
+                        </select>
+                    </div>
+                    <div id="adminUsersSummary" class="users-summary"></div>
+                    <div id="adminUsersList" class="users-list"></div>
+                    <div id="adminUserPagination" class="pagination"></div>
+                </div>
+
+                <!-- ABA 2: GERENCIAMENTO DE LOJAS -->
+                <div id="adminTabStores" class="admin-tab-content hidden">
+                    <div class="admin-toolbar">
+                        <input id="storeSearch" type="search" placeholder="Buscar loja, lojista ou e-mail...">
+                        <select id="storeStatus">
+                            <option value="all">Todas as lojas</option>
+                            <option value="active">Ativas</option>
+                            <option value="blocked">Bloqueadas</option>
+                        </select>
+                    </div>
+                    <div id="adminStoresSummary" class="users-summary"></div>
+                    <div id="adminStoresList" class="users-list"></div>
+                    <div id="storePagination" class="pagination"></div>
+                </div>
+
+                <!-- ABA 3: GERENCIAMENTO DE PRODUTOS -->
+                <div id="adminTabProducts" class="admin-tab-content hidden">
+                    <div class="admin-toolbar">
+                        <input id="productSearch" type="search" placeholder="Buscar por ID do produto (#...), nome ou categoria...">
+                        <select id="productStoreFilter">
+                            <option value="all">Todas as lojas / vendedores</option>
+                        </select>
+                        <select id="productCategoryFilter">
+                            <option value="all">Todas as categorias</option>
+                        </select>
+                        <select id="productStockFilter">
+                            <option value="all">Qualquer estoque</option>
+                            <option value="available">Em estoque</option>
+                            <option value="empty">Sem estoque</option>
+                        </select>
+                    </div>
+                    <div id="adminProductsSummary" class="users-summary"></div>
+                    <div id="adminProductsList" class="users-list"></div>
+                    <div id="productPagination" class="pagination"></div>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <!-- MODAL DE DETALHES DO PEDIDO -->
+    <div id="orderDetailModal" class="modal-backdrop hidden" onclick="if(event.target === this) closeOrderModal()">
+        <div class="modal-card order-modal">
+            <div class="modal-header">
+                <div>
+                    <span class="eyebrow">DETALHES DO PEDIDO</span>
+                    <h2 id="modalOrderVisualId">Pedido PED-00000</h2>
+                    <div class="modal-order-sub">ID API: <code id="modalOrderRawId"></code> · Realizado em <span id="modalOrderDate"></span></div>
+                </div>
+                <button type="button" class="close-modal-btn" onclick="closeOrderModal()" aria-label="Fechar">×</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- BANNER DE STATUS & TIMELINE -->
+                <div class="order-status-banner">
+                    <div class="status-top">
+                        <span>Status Atual:</span>
+                        <strong id="modalOrderStatusBadge" class="status">APROVADO</strong>
+                    </div>
+                    <!-- TIMELINE DE ENTREGA -->
+                    <div class="tracking-stepper" id="modalTrackingStepper">
+                        <div class="step is-done"><span class="dot"></span><span>1. Pedido Criado</span></div>
+                        <div class="step is-done"><span class="dot"></span><span>2. Pagamento Confirmado</span></div>
+                        <div class="step is-active"><span class="dot"></span><span>3. Em Preparação</span></div>
+                        <div class="step"><span class="dot"></span><span>4. A Caminho</span></div>
+                        <div class="step"><span class="dot"></span><span>5. Entregue</span></div>
+                    </div>
+                </div>
+
+                <!-- INFO GRID: PRAZO, PAGAMENTO, ENDEREÇO -->
+                <div class="order-info-grid">
+                    <div class="info-block">
+                        <span><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 3px;"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg> Previsão de Entrega</span>
+                        <strong id="modalOrderDelivery">Calculando...</strong>
+                        <small id="modalOrderShippingType">Modalidade: Padrão (PAC)</small>
+                    </div>
+                    <div class="info-block">
+                        <span><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 3px;"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg> Forma de Pagamento</span>
+                        <strong id="modalOrderPayment">Cartão de Crédito</strong>
+                        <small id="modalOrderPaymentDetail">1x sem juros</small>
+                    </div>
+                    <div class="info-block full-width">
+                        <span><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 3px;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> Endereço de Entrega</span>
+                        <strong id="modalOrderAddress">Rua ..., Bairro, Cidade - UF</strong>
+                    </div>
+                </div>
+
+                <!-- LISTA DE ITENS DO PEDIDO -->
+                <div class="order-items-section">
+                    <h3>Itens do Pedido</h3>
+                    <div id="modalOrderItemsList" class="order-items-table"></div>
+                </div>
+
+                <!-- RESUMO FINANCEIRO DISCRIMINADO -->
+                <div class="order-modal-summary">
+                    <div class="modal-sum-line"><span>Subtotal dos Produtos:</span> <span id="modalOrderSubtotal">R$ 0,00</span></div>
+                    <div class="modal-sum-line"><span>Frete:</span> <span id="modalOrderFreight">R$ 0,00</span></div>
+                    <div class="modal-sum-line modal-sum-discount" id="modalOrderDiscountRow"><span>Desconto:</span> <span id="modalOrderDiscount">- R$ 0,00</span></div>
+                    <div class="modal-sum-line total"><span>Total Pago:</span> <strong id="modalOrderTotal">R$ 0,00</strong></div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="ghost-button" onclick="printOrderReceipt()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                    Imprimir Comprovante
+                </button>
+                <button type="button" class="primary-button" onclick="closeOrderModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="painel.js"></script>
+</body>
+</html>

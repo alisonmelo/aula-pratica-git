@@ -1,0 +1,958 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Space+Grotesk:wght@300..700&display=swap');
+
+:root {
+    --ink: #17221c;
+    --paper: #f4f6f0;
+    --white: #ffffff;
+    --orange: #e76f51;
+    --lime: #d9f99d;
+    --line: #d8ded3;
+    --muted: #5e6b62;
+    --light-bg: #f8faf7;
+    --success-bg: #ecfdf5;
+    --success-border: #a7f3d0;
+    --success-text: #065f46;
+    --danger-bg: #fef2f2;
+    --danger-border: #fecaca;
+    --danger-text: #991b1b;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ========================================================
+   CABEÇALHO
+   ======================================================== */
+.checkout-header {
+    background: var(--white);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 5vw;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 4px rgba(23, 34, 28, 0.04);
+}
+
+.header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.brand {
+    font: 700 24px 'Space Grotesk', sans-serif;
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.brand span {
+    color: var(--orange);
+}
+
+.checkout-steps-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.step-indicator {
+    color: var(--muted);
+}
+
+.step-indicator.done {
+    color: #166534;
+}
+
+.step-indicator.active {
+    color: var(--ink);
+    font-weight: 700;
+    border-bottom: 2px solid var(--orange);
+    padding-bottom: 2px;
+}
+
+.step-separator {
+    color: var(--line);
+    font-size: 16px;
+}
+
+.header-user-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 13px;
+}
+
+.ghost-link {
+    color: var(--muted);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.ghost-link:hover {
+    color: var(--orange);
+    border-color: var(--orange);
+}
+
+/* ========================================================
+   LAYOUT PRINCIPAL
+   ======================================================== */
+.checkout-page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 36px 5vw 70px;
+}
+
+.checkout-notice {
+    min-height: 0;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.checkout-notice.success {
+    padding: 14px 18px;
+    color: var(--success-text);
+    background: var(--success-bg);
+    border: 1px solid var(--success-border);
+}
+
+.checkout-notice.error {
+    padding: 14px 18px;
+    color: var(--danger-text);
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+}
+
+.checkout-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 32px;
+    align-items: flex-start;
+}
+
+/* ========================================================
+   COLUNA ESQUERDA: CARDS DO FORMULÁRIO
+   ======================================================== */
+.checkout-forms-column {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.checkout-section-card {
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(23, 34, 28, 0.03);
+    overflow: hidden;
+}
+
+.section-card-header {
+    padding: 18px 24px;
+    background: var(--light-bg);
+    border-bottom: 1px solid var(--line);
+}
+
+.header-title-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.step-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.header-title-group h2 {
+    margin: 0;
+    font: 700 18px 'Space Grotesk', sans-serif;
+    color: var(--ink);
+}
+
+.header-title-group p {
+    margin: 3px 0 0;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.section-card-body {
+    padding: 24px;
+}
+
+/* ========================================================
+   FORMULÁRIOS & CAMPOS AMPLOS
+   ======================================================== */
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.form-field label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.label-badge-qa {
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.form-field input, 
+.form-field select {
+    width: 100%;
+    padding: 13px 15px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--white);
+    transition: all 0.2s;
+}
+
+.form-field input:focus, 
+.form-field select:focus {
+    outline: none;
+    border-color: var(--ink);
+    box-shadow: 0 0 0 3px rgba(23, 34, 28, 0.08);
+}
+
+/* Grid Rows com Excelente Espaçamento */
+.form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 16px;
+}
+
+.form-row-2:last-child {
+    margin-bottom: 0;
+}
+
+.form-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.5fr;
+    gap: 16px;
+}
+
+/* Rua e Número */
+.form-row-street {
+    display: grid;
+    grid-template-columns: 1fr 140px;
+    gap: 18px;
+    margin-bottom: 16px;
+}
+
+/* Cidade e Estado (Amplo espaço para Cidade) */
+.form-row-city-state {
+    display: grid;
+    grid-template-columns: 1fr 140px;
+    gap: 18px;
+}
+
+/* Caixa de Feedback do CPF (ABAIXO do input para NUNCA cobrir o valor) */
+.field-feedback-box {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    flex-wrap: wrap;
+}
+
+.status-pill {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-pill.default {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.status-pill.valid {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.status-pill.invalid {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+/* CEP Input Row */
+.cep-lookup-row {
+    margin-bottom: 16px;
+}
+
+.cep-input-field {
+    max-width: 380px;
+}
+
+.input-action-group {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-action-cep {
+    padding: 0 16px;
+    background: var(--ink);
+    color: #fff;
+    border: 0;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+
+.btn-action-cep:hover {
+    background: var(--orange);
+}
+
+.cep-status-message {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.cep-status-message.success { color: #16a34a; }
+.cep-status-message.error { color: #dc2626; }
+.cep-status-message.loading { color: #2563eb; }
+
+/* Input de Cartão com Bandeira */
+.input-card-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.brand-flag-pill {
+    position: absolute;
+    right: 12px;
+    background: #f1f5f9;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+/* ========================================================
+   OPÇÕES DE FRETE
+   ======================================================== */
+.shipping-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.shipping-card-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border: 2px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+    background: var(--white);
+    transition: all 0.2s;
+}
+
+.shipping-card-option:hover {
+    border-color: #94a3b8;
+}
+
+.shipping-card-option.selected {
+    border-color: var(--ink);
+    background: #fbfdf9;
+    box-shadow: 0 0 0 1px var(--ink);
+}
+
+.shipping-info-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.shipping-info-left input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.shipping-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.shipping-title-row strong {
+    font-size: 15px;
+    color: var(--ink);
+}
+
+.shipping-badge-tag {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.shipping-badge-tag.free {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.shipping-desc-text {
+    margin-top: 3px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.shipping-price-right {
+    text-align: right;
+}
+
+.shipping-price-right strong {
+    font: 700 17px 'Space Grotesk', sans-serif;
+    color: var(--ink);
+}
+
+/* ========================================================
+   FORMAS DE PAGAMENTO
+   ======================================================== */
+.payment-methods-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.pay-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--white);
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pay-tab:hover {
+    border-color: var(--ink);
+}
+
+.pay-tab.active {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+}
+
+/* BUG VISUAL QA: Tag de desconto do PIX com texto branco sobre fundo amarelo claro (baixo contraste / WCAG) */
+.tab-discount-tag {
+    background: #fef08a;
+    color: #ffffff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    margin-left: 4px;
+    text-shadow: 0 0 1px rgba(0,0,0,0.1);
+}
+
+/* BUG VISUAL QA: Força uppercase no campo de complemento */
+#deliveryComplement {
+    text-transform: uppercase;
+}
+
+.payment-subpane {
+    padding-top: 4px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* PIX Box */
+.pix-payment-box {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    padding: 24px;
+    border-radius: 8px;
+}
+
+.pix-qr-graphic {
+    width: 120px;
+    height: 120px;
+    background: #fff;
+    border: 1px solid #86efac;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #166534;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.qr-code-pattern {
+    width: 76px;
+    height: 76px;
+    background: repeating-conic-gradient(#15803d 0% 25%, #fff 0% 50%) 50% / 15px 15px;
+    border-radius: 4px;
+}
+
+.pix-details-wrapper {
+    flex: 1;
+}
+
+.pix-badge-discount {
+    display: inline-block;
+    background: #dcfce7;
+    color: #15803d;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.pix-details-wrapper h3 {
+    margin: 0 0 6px;
+    font: 700 17px 'Space Grotesk', sans-serif;
+    color: #166534;
+}
+
+.pix-details-wrapper p {
+    margin: 0 0 14px;
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.4;
+}
+
+.pix-copypaste-bar {
+    display: flex;
+    gap: 8px;
+}
+
+.pix-copypaste-bar input {
+    background: #fff !important;
+    font-family: monospace !important;
+    font-size: 12px !important;
+}
+
+.btn-copy-pix, .btn-copy-boleto {
+    padding: 0 16px;
+    background: var(--ink);
+    color: #fff;
+    border: 0;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+
+.btn-copy-pix:hover, .btn-copy-boleto:hover {
+    background: var(--orange);
+}
+
+/* Boleto Box */
+.boleto-payment-box {
+    background: #fffbeb;
+    border: 1px solid #fef3c7;
+    padding: 24px;
+    border-radius: 8px;
+}
+
+.boleto-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.boleto-header-bar strong {
+    color: #92400e;
+    font-size: 16px;
+}
+
+.boleto-header-bar span {
+    font-size: 12px;
+    font-weight: 700;
+    color: #b45309;
+}
+
+.boleto-payment-box p {
+    margin: 0 0 14px;
+    font-size: 13px;
+    color: #4b5563;
+}
+
+.boleto-copypaste-bar {
+    display: flex;
+    gap: 8px;
+}
+
+.boleto-copypaste-bar input {
+    background: #fff !important;
+    font-family: monospace !important;
+    font-size: 12px !important;
+}
+
+/* ========================================================
+   COLUNA DIREITA: RESUMO DO PEDIDO
+   ======================================================== */
+.checkout-summary-column {
+    position: sticky;
+    top: 90px;
+}
+
+.summary-sticky-card {
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: 0 4px 16px rgba(23, 34, 28, 0.04);
+}
+
+.summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 14px;
+    margin-bottom: 16px;
+}
+
+.summary-header h3 {
+    margin: 0;
+    font: 700 20px 'Space Grotesk', sans-serif;
+    color: var(--ink);
+}
+
+.count-pill {
+    background: #f1f5f9;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+}
+
+/* Lista de Produtos */
+.summary-products-box {
+    margin-bottom: 20px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.products-box-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--light-bg);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.summary-products-list {
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--white);
+}
+
+.summary-item-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+}
+
+.summary-item-card:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.summary-item-info strong {
+    display: block;
+    font-size: 13px;
+    color: var(--ink);
+}
+
+.summary-item-info span {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.summary-item-price {
+    text-align: right;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* Cupom de Desconto */
+.summary-coupon-box {
+    margin-bottom: 20px;
+}
+
+.summary-coupon-box label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
+.coupon-input-group {
+    display: flex;
+    gap: 8px;
+}
+
+.coupon-input-group input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.btn-apply-coupon {
+    padding: 0 14px;
+    background: var(--ink);
+    color: #fff;
+    border: 0;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-apply-coupon:hover {
+    background: var(--orange);
+}
+
+.coupon-msg {
+    margin-top: 5px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.coupon-msg.success { color: #16a34a; }
+.coupon-msg.error { color: #dc2626; }
+
+.qa-coupon-hints {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.3;
+}
+
+.qa-coupon-hints code {
+    background: #f1f5f9;
+    padding: 2px 4px;
+    border-radius: 3px;
+    color: var(--ink);
+    font-weight: 600;
+}
+
+/* Tabela de Preços */
+.summary-pricing-table {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 0;
+    margin-bottom: 16px;
+}
+
+.price-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--muted);
+}
+
+.price-row strong {
+    color: var(--ink);
+}
+
+.discount-row span, .discount-row strong {
+    color: #16a34a !important;
+}
+
+.total-row {
+    padding-top: 6px;
+    font-size: 16px;
+}
+
+.total-row strong {
+    font: 700 24px 'Space Grotesk', sans-serif;
+    color: var(--ink);
+}
+
+/* Estimativa de Entrega */
+.delivery-estimate-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f0fdf4;
+    border: 1px solid #dcfce7;
+    color: #166534;
+    padding: 12px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-bottom: 18px;
+}
+
+.delivery-icon {
+    font-size: 20px;
+}
+
+.delivery-estimate-card strong {
+    display: block;
+    font-size: 13px;
+}
+
+/* Botão Confirmar */
+.btn-confirm-order {
+    width: 100%;
+    padding: 15px;
+    background: var(--ink);
+    color: #fff;
+    border: 0;
+    border-radius: 6px;
+    font: 700 15px 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+}
+
+.btn-confirm-order:hover:not(:disabled) {
+    background: var(--orange);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(231, 111, 81, 0.25);
+}
+
+.btn-confirm-order:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.security-guarantee {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+/* ========================================================
+   RESPONSIVIDADE
+   ======================================================== */
+@media (max-width: 960px) {
+    .checkout-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .checkout-summary-column {
+        position: static;
+    }
+    
+    .form-row-2, 
+    .form-row-3,
+    .form-row-street,
+    .form-row-city-state {
+        grid-template-columns: 1fr;
+    }
+    
+    .pix-payment-box {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .pix-copypaste-bar, .boleto-copypaste-bar {
+        flex-direction: column;
+    }
+}

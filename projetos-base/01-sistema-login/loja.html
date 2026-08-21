@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vitrine Tech | LojaQA</title>
+    <link rel="stylesheet" href="loja.css">
+</head>
+<body>
+    <header class="store-header">
+        <a class="brand" href="loja.html">Loja<span>QA</span></a>
+        <nav>
+            <a href="#catalogo">Produtos</a>
+            <div id="userNav" class="user-nav" style="display: none;">
+                <span class="user-greeting" id="userGreeting"></span>
+                <a href="painel.html" class="nav-panel-link" id="accountLink">Meu painel</a>
+                <button id="navLogoutBtn" class="ghost-button-small" type="button">Sair</button>
+            </div>
+            <a href="login.html" id="loginLink">Entrar</a>
+            <button class="cart-button" id="cartButton" type="button">Carrinho <b id="cartCount">0</b></button>
+        </nav>
+    </header>
+
+    <main>
+        <section class="store-hero">
+            <div>
+                <p class="eyebrow">TECNOLOGIA SEM ENROLAÇÃO</p>
+                <h1>Seu próximo setup começa aqui.</h1>
+                <p>Produtos selecionados, lojas independentes e uma experiência simples para comprar melhor.</p>
+            </div>
+            <div class="hero-stat"><strong>24h</strong><span>para despacho</span></div>
+        </section>
+
+        <section class="catalog-section" id="catalogo">
+            <div class="section-heading">
+                <div><p class="eyebrow">VITRINE</p><h2>Explore os produtos</h2></div>
+                <span id="resultsSummary">Carregando...</span>
+            </div>
+            <div class="catalog-tools">
+                <label class="search-box"><span>Buscar</span><input id="searchInput" type="search" placeholder="Buscar por nome, categoria ou ID do produto..."></label>
+                <label><span>Categoria</span><select id="categoryFilter"><option value="">Todas</option></select></label>
+                <label><span>Preço máximo</span><input id="maxPrice" type="number" min="0" placeholder="R$ 0,00"></label>
+            </div>
+            <div class="product-grid" id="productGrid"></div>
+        </section>
+    </main>
+
+    <aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
+        <div class="drawer-heading"><div><p class="eyebrow">SUA SACOLA</p><h2>Carrinho</h2></div><button id="closeCart" type="button" aria-label="Fechar carrinho">×</button></div>
+        <div id="cartItems" class="cart-items"></div>
+        <div class="cart-footer"><div><span>Total</span><strong id="cartTotal">R$ 0,00</strong></div><button class="primary-button" id="checkoutButton" type="button">Continuar para checkout</button></div>
+    </aside>
+    <div class="drawer-backdrop" id="drawerBackdrop"></div>
+    <div class="toast" id="toast" role="status"></div>
+    <script src="loja.js"></script>
+</body>
+</html>

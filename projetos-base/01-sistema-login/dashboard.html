@@ -3,15 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Dashboard - Área Restrita</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <script>
-    // Se não estiver autenticado, chuta de volta para o login
-    if (localStorage.getItem('isAuthenticated') !== 'true') {
-        window.location.href = 'index.html';
+    function redirectToLogin() {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.replace('login.html');
+    }
+
+    async function validateDashboardAccess() {
+        const token = localStorage.getItem('token');
+        const isAuthenticated = localStorage.getItem('isAuthenticated');
+
+        if (isAuthenticated !== 'true' || !token) {
+            redirectToLogin();
+            return;
+        }
+
+        try {
+            const response = await fetch('https://api-qa-fap2026.onrender.com/api/users', {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok || response.status === 401 || response.status === 403) {
+                throw new Error('Token inválido');
+            }
+        } catch (error) {
+            redirectToLogin();
+        }
+    }
+
+    validateDashboardAccess();
+
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted || performance.getEntriesByType('navigation')[0].type === 'back_forward') {
+            validateDashboardAccess();
+        }
+    });
+
+    if (window.history && window.history.pushState) {
+        window.history.pushState(null, null, window.location.href);
+        window.onpopstate = function() {
+            if (!localStorage.getItem('token')) {
+                redirectToLogin();
+            } else {
+                validateDashboardAccess();
+            }
+        };
     }
 </script>
 
@@ -45,6 +91,7 @@
                 <select id="userRoleFilter">
                     <option value="all">Todos os perfis</option>
                     <option value="admin">Admin</option>
+                    <option value="seller">Lojista</option>
                     <option value="user">Usuário</option>
                     <option value="blocked">Bloqueado</option>
                 </select>
@@ -129,7 +176,7 @@
         }
 
         list.innerHTML = pageUsers.map(user => {
-            const badgeClass = user.role === 'admin' ? 'badge admin' : user.role === 'blocked' ? 'badge blocked' : 'badge';
+            const badgeClass = user.role === 'admin' ? 'badge admin' : user.role === 'blocked' ? 'badge blocked' : user.role === 'seller' ? 'badge seller' : 'badge';
             const selectedRole = user.role || 'user';
             const isBlocked = user.role === 'blocked';
             const testUsers = ['admin@system.com', 'user@system.com', 'blocked@system.com', 'slow@system.com'];
@@ -164,6 +211,7 @@
                                 <select data-field="role" ${disabledAttribute}>
                                     <option value="user" ${selectedRole === 'user' ? 'selected' : ''}>Usuário</option>
                                     <option value="admin" ${selectedRole === 'admin' ? 'selected' : ''}>Admin</option>
+                                    <option value="seller" ${selectedRole === 'seller' ? 'selected' : ''}>Lojista</option>
                                     <option value="blocked" ${selectedRole === 'blocked' ? 'selected' : ''}>Bloqueado</option>
                                 </select>
                             </label>
@@ -337,10 +385,12 @@
     }
 
     function logout() {
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('token');
-        window.location.href = 'index.html';
+        // Limpar todas as sessões de forma segura
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Redirecionar para login
+        window.location.href = 'loja.html';
     }
 
     document.getElementById('userSearchInput').addEventListener('input', (event) => {
