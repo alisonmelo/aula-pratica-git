@@ -49,21 +49,274 @@
                 <div id="ordersList" class="data-list"></div>
             </section>
 
-            <!-- SEÇÃO DE CHECKOUT -->
+            <!-- SEÇÃO DE CHECKOUT COMPLETO & REALISTA -->
             <section id="checkoutSection" class="panel-section hidden">
                 <div class="section-title">
                     <div>
-                        <p class="eyebrow">ÚLTIMO PASSO</p>
-                        <h2>Finalizar compra</h2>
+                        <p class="eyebrow">FINALIZAÇÃO DE COMPRA</p>
+                        <h2>Checkout Seguro</h2>
+                        <p class="section-description">Ambiente realista de compra e teste para simulação de QA</p>
                     </div>
+                    <button class="ghost-button" type="button" onclick="cancelCheckout()">← Continuar Comprando</button>
                 </div>
-                <form id="checkoutForm" class="checkout-form">
-                    <label>
-                        Endereço de entrega
-                        <textarea id="shippingAddress" maxlength="300" required placeholder="Rua, número, bairro, cidade"></textarea>
-                    </label>
-                    <button class="primary-button" type="submit">Confirmar pedido</button>
-                </form>
+
+                <div class="checkout-layout">
+                    <!-- COLUNA PRINCIPAL DOS FORMULÁRIOS -->
+                    <div class="checkout-main">
+                        <!-- 1. ITENS DO PEDIDO -->
+                        <div class="checkout-card">
+                            <div class="card-header-toggle" onclick="toggleCheckoutCard('checkoutItemsCard')">
+                                <div class="card-header-title">
+                                    <span class="step-num">1</span>
+                                    <h3>Produtos no Carrinho (<span id="checkoutItemsCount">0</span>)</h3>
+                                </div>
+                                <span class="toggle-icon">▼</span>
+                            </div>
+                            <div id="checkoutItemsCard" class="card-body">
+                                <div id="checkoutCartList" class="checkout-items-list"></div>
+                            </div>
+                        </div>
+
+                        <!-- 2. DADOS DO CLIENTE & VALIDAÇÃO CPF -->
+                        <div class="checkout-card">
+                            <div class="card-header-toggle" onclick="toggleCheckoutCard('checkoutBuyerCard')">
+                                <div class="card-header-title">
+                                    <span class="step-num">2</span>
+                                    <h3>Dados do Comprador & CPF</h3>
+                                </div>
+                                <span class="toggle-icon">▼</span>
+                            </div>
+                            <div id="checkoutBuyerCard" class="card-body">
+                                <div class="form-grid-2">
+                                    <label>
+                                        Nome Completo
+                                        <input id="checkoutName" type="text" required placeholder="Seu nome completo">
+                                    </label>
+                                    <label>
+                                        E-mail para Confirmação
+                                        <input id="checkoutEmail" type="email" required placeholder="seu@email.com">
+                                    </label>
+                                </div>
+                                <div class="form-grid-2">
+                                    <label>
+                                        Telefone / WhatsApp
+                                        <input id="checkoutPhone" type="tel" maxlength="15" placeholder="(00) 00000-0000">
+                                    </label>
+                                    <label>
+                                        CPF do Titular (Validação Real para QA)
+                                        <div class="input-with-validation">
+                                            <input id="checkoutCpf" type="text" maxlength="14" placeholder="000.000.000-00" required>
+                                            <span id="cpfValidationBadge" class="validation-badge"></span>
+                                        </div>
+                                        <small id="cpfHelpText" class="field-help">Digite o CPF para validação de dígitos</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. ENDEREÇO & VIACEP -->
+                        <div class="checkout-card">
+                            <div class="card-header-toggle" onclick="toggleCheckoutCard('checkoutAddressCard')">
+                                <div class="card-header-title">
+                                    <span class="step-num">3</span>
+                                    <h3>Endereço de Entrega & CEP</h3>
+                                </div>
+                                <span class="toggle-icon">▼</span>
+                            </div>
+                            <div id="checkoutAddressCard" class="card-body">
+                                <div class="cep-search-row">
+                                    <label style="flex: 1;">
+                                        CEP
+                                        <div class="input-with-button">
+                                            <input id="checkoutCep" type="text" maxlength="9" placeholder="00000-000" required>
+                                            <button type="button" id="btnSearchCep" class="ghost-button" onclick="searchCep()">Buscar CEP</button>
+                                        </div>
+                                    </label>
+                                    <div class="cep-feedback" id="cepFeedback"></div>
+                                </div>
+                                <div class="form-grid-3">
+                                    <label style="grid-column: span 2;">
+                                        Logradouro / Rua
+                                        <input id="checkoutStreet" type="text" required placeholder="Ex: Av. Paulista">
+                                    </label>
+                                    <label>
+                                        Número
+                                        <input id="checkoutNumber" type="text" required placeholder="Ex: 123">
+                                    </label>
+                                </div>
+                                <div class="form-grid-3">
+                                    <label>
+                                        Complemento
+                                        <input id="checkoutComplement" type="text" placeholder="Apto, Bloco, etc.">
+                                    </label>
+                                    <label>
+                                        Bairro
+                                        <input id="checkoutNeighborhood" type="text" required placeholder="Bairro">
+                                    </label>
+                                    <label>
+                                        Cidade / UF
+                                        <div class="city-uf-row">
+                                            <input id="checkoutCity" type="text" required placeholder="Cidade" style="flex: 2;">
+                                            <input id="checkoutState" type="text" maxlength="2" required placeholder="UF" style="width: 60px; text-transform: uppercase;">
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. MODALIDADES DE FRETE -->
+                        <div class="checkout-card">
+                            <div class="card-header-toggle" onclick="toggleCheckoutCard('checkoutShippingCard')">
+                                <div class="card-header-title">
+                                    <span class="step-num">4</span>
+                                    <h3>Opção de Envio & Prazo Estimado</h3>
+                                </div>
+                                <span class="toggle-icon">▼</span>
+                            </div>
+                            <div id="checkoutShippingCard" class="card-body">
+                                <div id="shippingOptionsContainer" class="shipping-options-grid"></div>
+                            </div>
+                        </div>
+
+                        <!-- 5. FORMAS DE PAGAMENTO -->
+                        <div class="checkout-card">
+                            <div class="card-header-toggle" onclick="toggleCheckoutCard('checkoutPaymentCard')">
+                                <div class="card-header-title">
+                                    <span class="step-num">5</span>
+                                    <h3>Forma de Pagamento</h3>
+                                </div>
+                                <span class="toggle-icon">▼</span>
+                            </div>
+                            <div id="checkoutPaymentCard" class="card-body">
+                                <div class="payment-tabs">
+                                    <button type="button" class="payment-tab active" data-method="credit" onclick="selectPaymentMethod('credit')">
+                                        💳 Cartão de Crédito
+                                    </button>
+                                    <button type="button" class="payment-tab" data-method="pix" onclick="selectPaymentMethod('pix')">
+                                        💠 PIX (5% OFF)
+                                    </button>
+                                    <button type="button" class="payment-tab" data-method="boleto" onclick="selectPaymentMethod('boleto')">
+                                        📄 Boleto Bancário
+                                    </button>
+                                </div>
+
+                                <!-- CARTÃO -->
+                                <div id="paymentCreditForm" class="payment-pane active">
+                                    <div class="form-grid-2">
+                                        <label>
+                                            Número do Cartão
+                                            <div class="input-with-brand">
+                                                <input id="cardNum" type="text" maxlength="19" placeholder="0000 0000 0000 0000">
+                                                <span id="cardBrandBadge" class="card-brand-badge">💳</span>
+                                            </div>
+                                        </label>
+                                        <label>
+                                            Nome Impresso no Cartão
+                                            <input id="cardHolder" type="text" placeholder="Nome como no cartão">
+                                        </label>
+                                    </div>
+                                    <div class="form-grid-3">
+                                        <label>
+                                            Validade (MM/AA)
+                                            <input id="cardExpiry" type="text" maxlength="5" placeholder="MM/AA">
+                                        </label>
+                                        <label>
+                                            Código CVV
+                                            <input id="cardCvv" type="text" maxlength="4" placeholder="123">
+                                        </label>
+                                        <label>
+                                            Parcelamento
+                                            <select id="cardInstallments"></select>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- PIX -->
+                                <div id="paymentPixForm" class="payment-pane hidden">
+                                    <div class="pix-box">
+                                        <div class="pix-qr-sim">
+                                            <div class="pix-qr-code">
+                                                <div class="qr-matrix-sim"></div>
+                                                <span>💠 QR CODE PIX</span>
+                                            </div>
+                                        </div>
+                                        <div class="pix-info">
+                                            <strong>Pague via PIX e receba 5% de desconto imediato!</strong>
+                                            <p>Aprovação instantânea do pagamento. Código com validade de 30 minutos.</p>
+                                            <div class="copy-paste-row">
+                                                <input id="pixCopyCode" type="text" readonly value="00020126580014BR.GOV.BCB.PIX0136lojaqa-pagamentos@system.com5204000053039865802BR5925LOJAQA COMERCIO DE TECH6009SAO PAULO62070503***6304">
+                                                <button type="button" class="ghost-button" onclick="copyPixCode()">Copiar Código PIX</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- BOLETO -->
+                                <div id="paymentBoletoForm" class="payment-pane hidden">
+                                    <div class="boleto-box">
+                                        <div class="boleto-header">
+                                            <strong>📄 Boleto Bancário Registrado</strong>
+                                            <span>Vencimento em 3 dias úteis</span>
+                                        </div>
+                                        <p>Você poderá pagar em qualquer agência bancária, internet banking ou app até a data de vencimento.</p>
+                                        <div class="copy-paste-row">
+                                            <input id="boletoCode" type="text" readonly value="34191.79001 01043.510047 91020.150008 8 98760000000000">
+                                            <button type="button" class="ghost-button" onclick="copyBoletoCode()">Copiar Linha Digitável</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- COLUNA LATERAL DE RESUMO & CUPOM -->
+                    <aside class="checkout-sidebar">
+                        <div class="checkout-summary-card">
+                            <h3>Resumo do Pedido</h3>
+                            
+                            <!-- CUPOM DE DESCONTO -->
+                            <div class="coupon-box">
+                                <label>Cupom de Desconto</label>
+                                <div class="input-with-button">
+                                    <input id="couponCodeInput" type="text" placeholder="Ex: QA10, ALUNOQA" style="text-transform: uppercase;">
+                                    <button type="button" class="ghost-button" onclick="applyCoupon()">Aplicar</button>
+                                </div>
+                                <div id="couponFeedback" class="coupon-feedback"></div>
+                                <small class="coupon-tip">💡 Cupons para QA: <code>QA10</code>, <code>QA20</code>, <code>FRETEGRATIS</code>, <code>ALUNOQA</code></small>
+                            </div>
+
+                            <div class="summary-lines">
+                                <div class="summary-line">
+                                    <span>Subtotal (<span id="summaryItemsTotalCount">0</span> itens)</span>
+                                    <strong id="summarySubtotal">R$ 0,00</strong>
+                                </div>
+                                <div class="summary-line">
+                                    <span>Frete (<span id="summaryFreightName">Padrão</span>)</span>
+                                    <strong id="summaryFreight">R$ 0,00</strong>
+                                </div>
+                                <div class="summary-line discount-line" id="summaryDiscountRow" style="display: none;">
+                                    <span>Desconto (<span id="summaryDiscountLabel">Cupom</span>)</span>
+                                    <strong id="summaryDiscount">- R$ 0,00</strong>
+                                </div>
+                                <div class="summary-line total-line">
+                                    <span>Total a Pagar</span>
+                                    <strong id="summaryTotal">R$ 0,00</strong>
+                                </div>
+                            </div>
+
+                            <div class="delivery-estimate-badge" id="summaryDeliveryEstimate">
+                                📅 Previsão de entrega: <strong>Aguardando CEP</strong>
+                            </div>
+
+                            <button class="primary-button checkout-submit-btn" type="button" id="btnSubmitOrder" onclick="processOrderCheckout()">
+                                🔒 Confirmar e Finalizar Pedido
+                            </button>
+                            <div class="secure-badge">
+                                <span>🛡️ Ambiente Simulado de Teste QA</span>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
             </section>
 
             <!-- SEÇÃO DO LOJISTA -->
@@ -176,6 +429,75 @@
             </section>
         </section>
     </main>
+
+    <!-- MODAL DE DETALHES DO PEDIDO -->
+    <div id="orderDetailModal" class="modal-backdrop hidden" onclick="if(event.target === this) closeOrderModal()">
+        <div class="modal-card order-modal">
+            <div class="modal-header">
+                <div>
+                    <span class="eyebrow">DETALHES DO PEDIDO</span>
+                    <h2 id="modalOrderVisualId">Pedido PED-00000</h2>
+                    <div class="modal-order-sub">ID API: <code id="modalOrderRawId"></code> · Realizado em <span id="modalOrderDate"></span></div>
+                </div>
+                <button type="button" class="close-modal-btn" onclick="closeOrderModal()" aria-label="Fechar">×</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- BANNER DE STATUS & TIMELINE -->
+                <div class="order-status-banner">
+                    <div class="status-top">
+                        <span>Status Atual:</span>
+                        <strong id="modalOrderStatusBadge" class="status">APROVADO</strong>
+                    </div>
+                    <!-- TIMELINE DE ENTREGA -->
+                    <div class="tracking-stepper" id="modalTrackingStepper">
+                        <div class="step is-done"><span class="dot"></span><span>1. Pedido Criado</span></div>
+                        <div class="step is-done"><span class="dot"></span><span>2. Pagamento Confirmado</span></div>
+                        <div class="step is-active"><span class="dot"></span><span>3. Em Preparação</span></div>
+                        <div class="step"><span class="dot"></span><span>4. A Caminho</span></div>
+                        <div class="step"><span class="dot"></span><span>5. Entregue</span></div>
+                    </div>
+                </div>
+
+                <!-- INFO GRID: PRAZO, PAGAMENTO, ENDEREÇO -->
+                <div class="order-info-grid">
+                    <div class="info-block">
+                        <span>📅 Previsão de Entrega</span>
+                        <strong id="modalOrderDelivery">Calculando...</strong>
+                        <small id="modalOrderShippingType">Modalidade: Padrão (PAC)</small>
+                    </div>
+                    <div class="info-block">
+                        <span>💳 Forma de Pagamento</span>
+                        <strong id="modalOrderPayment">Cartão de Crédito</strong>
+                        <small id="modalOrderPaymentDetail">1x sem juros</small>
+                    </div>
+                    <div class="info-block full-width">
+                        <span>📍 Endereço de Entrega</span>
+                        <strong id="modalOrderAddress">Rua ..., Bairro, Cidade - UF</strong>
+                    </div>
+                </div>
+
+                <!-- LISTA DE ITENS DO PEDIDO -->
+                <div class="order-items-section">
+                    <h3>Itens do Pedido</h3>
+                    <div id="modalOrderItemsList" class="order-items-table"></div>
+                </div>
+
+                <!-- RESUMO FINANCEIRO DISCRIMINADO -->
+                <div class="order-modal-summary">
+                    <div class="modal-sum-line"><span>Subtotal dos Produtos:</span> <span id="modalOrderSubtotal">R$ 0,00</span></div>
+                    <div class="modal-sum-line"><span>Frete:</span> <span id="modalOrderFreight">R$ 0,00</span></div>
+                    <div class="modal-sum-line modal-sum-discount" id="modalOrderDiscountRow"><span>Desconto:</span> <span id="modalOrderDiscount">- R$ 0,00</span></div>
+                    <div class="modal-sum-line total"><span>Total Pago:</span> <strong id="modalOrderTotal">R$ 0,00</strong></div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="ghost-button" onclick="printOrderReceipt()">🖨️ Imprimir Comprovante</button>
+                <button type="button" class="primary-button" onclick="closeOrderModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
 
     <script src="painel.js"></script>
 </body>
