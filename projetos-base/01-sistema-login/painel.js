@@ -98,57 +98,6 @@ function configurePanel() {
     }
 }
 
-// --- ESTADO E CONFIGURAÇÕES DO CHECKOUT & SIMULAÇÃO QA ---
-const checkoutState = {
-    freightOptions: [],
-    selectedFreight: null,
-    discount: 0,
-    discountType: null,
-    discountLabel: '',
-    couponCode: '',
-    paymentMethod: 'credit',
-    installments: 1
-};
-
-const AVAILABLE_COUPONS = {
-    'QA10': { type: 'percent', value: 10, label: 'Cupom QA10 (10% OFF)' },
-    'QA20': { type: 'percent', value: 20, label: 'Cupom QA20 (20% OFF)' },
-    'FRETEGRATIS': { type: 'freight', value: 100, label: 'Cupom Frete Grátis' },
-    'ALUNOQA': { type: 'fixed', value: 30.00, label: 'Cupom Aluno QA (R$ 30 OFF)' }
-};
-
-// Algoritmo Real de Validação de CPF (Módulo 11) - Excelente para testes de QA
-function validateCPF(cpf) {
-    cpf = String(cpf || '').replace(/\D/g, '');
-    if (cpf.length !== 11) return false;
-    if (/^(\d)\1{10}$/.test(cpf)) return false;
-    
-    let sum = 0;
-    for (let i = 0; i < 9; i++) sum += parseInt(cpf.charAt(i), 10) * (10 - i);
-    let rest = (sum * 10) % 11;
-    if (rest === 10 || rest === 11) rest = 0;
-    if (rest !== parseInt(cpf.charAt(9), 10)) return false;
-    
-    sum = 0;
-    for (let i = 0; i < 10; i++) sum += parseInt(cpf.charAt(i), 10) * (11 - i);
-    rest = (sum * 10) % 11;
-    if (rest === 10 || rest === 11) rest = 0;
-    if (rest !== parseInt(cpf.charAt(10), 10)) return false;
-    
-    return true;
-}
-
-// Identificador de Bandeira de Cartão
-function detectCardBrand(num) {
-    const clean = String(num || '').replace(/\D/g, '');
-    if (/^4/.test(clean)) return { name: 'Visa', icon: '💳 Visa' };
-    if (/^(5[1-5]|2[2-7])/.test(clean)) return { name: 'Mastercard', icon: '💳 Mastercard' };
-    if (/^(401178|401179|438935|457631|457632|504175|627780|636297|636368)/.test(clean)) return { name: 'Elo', icon: '💳 Elo' };
-    if (/^3[47]/.test(clean)) return { name: 'Amex', icon: '💳 Amex' };
-    if (/^(606282|3841)/.test(clean)) return { name: 'Hipercard', icon: '💳 Hipercard' };
-    return { name: 'Desconhecido', icon: '💳' };
-}
-
 // Persistência local de metadados ricos dos pedidos (para visualização completa)
 function getOrdersMeta() {
     try {
@@ -190,7 +139,7 @@ async function loadOrders() {
                 const orderVisualId = formatOrderId(order._id);
                 const itemsCount = meta.items ? meta.items.length : (order.items ? order.items.length : 1);
                 const paymentInfo = meta.paymentMethodName || 'Cartão / PIX';
-                const forecast = meta.deliveryForecast ? ` · 🚚 Previsão: ${meta.deliveryForecast}` : '';
+                const forecast = meta.deliveryForecast ? ` · Previsão: ${meta.deliveryForecast}` : '';
 
                 return `
                     <article class="data-row" style="cursor: pointer;" onclick="openOrderModal('${order._id}')">
@@ -205,13 +154,21 @@ async function loadOrders() {
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span class="status">${(order.status || 'aprovado').toUpperCase()}</span>
                             <button class="ghost-button" type="button" onclick="event.stopPropagation(); openOrderModal('${order._id}')">
-                                👁️ Detalhes
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px; margin-right: 4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+                                Ver Detalhes
                             </button>
                         </div>
                     </article>
                 `;
             }).join('') 
             : '<div class="empty">Você ainda não realizou nenhum pedido. Visite a vitrine e comece a comprar!</div>';
+            
+        // Verifica se há parâmetro orderId na URL para abrir automaticamente o modal
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderIdParam = urlParams.get('orderId');
+        if (orderIdParam) {
+            openOrderModal(orderIdParam);
+        }
     } catch (error) { 
         list.innerHTML = `<div class="empty">${error.message}</div>`; 
     }
@@ -316,605 +273,6 @@ function closeOrderModal() {
 
 function printOrderReceipt() {
     window.print();
-}
-
-function copyPixCode() {
-    const input = document.getElementById('pixCopyCode');
-    if (input) {
-        navigator.clipboard?.writeText(input.value);
-        showNotice('Código PIX copiado para a área de transferência!');
-    }
-}
-
-function copyBoletoCode() {
-    const input = document.getElementById('boletoCode');
-    if (input) {
-        navigator.clipboard?.writeText(input.value);
-        showNotice('Código de barras do boleto copiado!');
-    }
-}
-
-// --- FLUXO DO NOVO CHECKOUT REALISTA ---
-function toggleCheckoutCard(cardBodyId) {
-    const body = document.getElementById(cardBodyId);
-    if (!body) return;
-    const isHidden = body.style.display === 'none';
-    body.style.display = isHidden ? 'block' : 'none';
-}
-
-function cancelCheckout() {
-    document.getElementById('checkoutSection').classList.add('hidden');
-    window.location.href = 'loja.html';
-}
-
-function initCheckout() {
-    const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
-    if (!cart.length) {
-        showNotice('Seu carrinho está vazio. Adicione produtos na vitrine primeiro.', true);
-        setTimeout(() => window.location.href = 'loja.html', 1200);
-        return;
-    }
-    
-    // Preenche dados do comprador se disponíveis
-    const nameInput = document.getElementById('checkoutName');
-    const emailInput = document.getElementById('checkoutEmail');
-    if (nameInput && !nameInput.value) nameInput.value = user.name || '';
-    if (emailInput && !emailInput.value) emailInput.value = user.email || '';
-    
-    // Configura máscaras de input
-    setupCheckoutMasks();
-    
-    // Renderiza itens do carrinho
-    renderCheckoutCart();
-    
-    // Calcula fretes iniciais padrão
-    calculateFreightOptions('SP');
-}
-
-function setupCheckoutMasks() {
-    const cpfInput = document.getElementById('checkoutCpf');
-    const cepInput = document.getElementById('checkoutCep');
-    const phoneInput = document.getElementById('checkoutPhone');
-    const cardNum = document.getElementById('cardNum');
-    const cardExpiry = document.getElementById('cardExpiry');
-    const cardCvv = document.getElementById('cardCvv');
-    
-    if (cpfInput && !cpfInput.dataset.masked) {
-        cpfInput.dataset.masked = 'true';
-        cpfInput.addEventListener('input', e => {
-            let v = e.target.value.replace(/\D/g, '');
-            if (v.length > 11) v = v.slice(0, 11);
-            v = v.replace(/(\d{3})(\d)/, '$1.$2')
-                 .replace(/(\d{3})(\d)/, '$1.$2')
-                 .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-            e.target.value = v;
-            
-            // Feedback de validação instantânea para QA
-            const badge = document.getElementById('cpfValidationBadge');
-            const help = document.getElementById('cpfHelpText');
-            const cleanCpf = e.target.value.replace(/\D/g, '');
-            if (cleanCpf.length === 11) {
-                const isValid = validateCPF(cleanCpf);
-                if (isValid) {
-                    badge.className = 'validation-badge valid';
-                    badge.textContent = '✅ Válido';
-                    help.textContent = 'CPF válido pelo cálculo oficial de dígitos verificadores.';
-                } else {
-                    badge.className = 'validation-badge invalid';
-                    badge.textContent = '❌ Inválido';
-                    help.textContent = 'Dígitos verificadores do CPF inválidos (cenário de teste QA).';
-                }
-            } else {
-                badge.className = 'validation-badge';
-                badge.textContent = '';
-                help.textContent = 'Digite os 11 dígitos do CPF para validar.';
-            }
-        });
-    }
-    
-    if (cepInput && !cepInput.dataset.masked) {
-        cepInput.dataset.masked = 'true';
-        cepInput.addEventListener('input', e => {
-            let v = e.target.value.replace(/\D/g, '');
-            if (v.length > 8) v = v.slice(0, 8);
-            v = v.replace(/(\d{5})(\d)/, '$1-$2');
-            e.target.value = v;
-            if (v.replace(/\D/g, '').length === 8) {
-                searchCep();
-            }
-        });
-    }
-    
-    if (phoneInput && !phoneInput.dataset.masked) {
-        phoneInput.dataset.masked = 'true';
-        phoneInput.addEventListener('input', e => {
-            let v = e.target.value.replace(/\D/g, '');
-            if (v.length > 11) v = v.slice(0, 11);
-            if (v.length > 10) {
-                v = v.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-            } else if (v.length > 5) {
-                v = v.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
-            } else if (v.length > 2) {
-                v = v.replace(/(\d{2})(\d{0,5})/, '($1) $2');
-            }
-            e.target.value = v;
-        });
-    }
-    
-    if (cardNum && !cardNum.dataset.masked) {
-        cardNum.dataset.masked = 'true';
-        cardNum.addEventListener('input', e => {
-            let v = e.target.value.replace(/\D/g, '');
-            if (v.length > 16) v = v.slice(0, 16);
-            v = v.replace(/(\d{4})(?=\d)/g, '$1 ');
-            e.target.value = v;
-            
-            // Detecta bandeira
-            const brand = detectCardBrand(v);
-            const brandBadge = document.getElementById('cardBrandBadge');
-            if (brandBadge) brandBadge.textContent = brand.icon;
-        });
-    }
-    
-    if (cardExpiry && !cardExpiry.dataset.masked) {
-        cardExpiry.dataset.masked = 'true';
-        cardExpiry.addEventListener('input', e => {
-            let v = e.target.value.replace(/\D/g, '');
-            if (v.length > 4) v = v.slice(0, 4);
-            if (v.length >= 2) v = v.replace(/(\d{2})(\d{1,2})/, '$1/$2');
-            e.target.value = v;
-        });
-    }
-    
-    if (cardCvv && !cardCvv.dataset.masked) {
-        cardCvv.dataset.masked = 'true';
-        cardCvv.addEventListener('input', e => {
-            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
-        });
-    }
-}
-
-function renderCheckoutCart() {
-    const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
-    const container = document.getElementById('checkoutCartList');
-    const countBadge = document.getElementById('checkoutItemsCount');
-    if (countBadge) countBadge.textContent = cart.reduce((sum, i) => sum + i.quantity, 0);
-    
-    if (!container) return;
-    
-    if (!cart.length) {
-        container.innerHTML = '<div class="empty">Seu carrinho está vazio.</div>';
-        return;
-    }
-    
-    container.innerHTML = cart.map(item => `
-        <div class="checkout-item-row">
-            <div class="checkout-item-info">
-                <strong>${escapeHtml(item.name)}</strong>
-                <span>ID: <code>${formatProductId(item.productId)}</code> · Preço: ${money(item.price)} cada</span>
-            </div>
-            <div class="checkout-item-qty">
-                <button type="button" onclick="changeCheckoutQty('${item.productId}', -1)">−</button>
-                <b>${item.quantity}</b>
-                <button type="button" onclick="changeCheckoutQty('${item.productId}', 1)">+</button>
-                <strong style="margin-left: 12px; font-family: 'Space Grotesk', sans-serif;">${money(item.price * item.quantity)}</strong>
-            </div>
-        </div>
-    `).join('');
-    
-    updateCheckoutSummary();
-}
-
-function changeCheckoutQty(productId, amount) {
-    const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
-    const item = cart.find(entry => entry.productId === productId);
-    if (!item) return;
-    
-    item.quantity += amount;
-    if (item.quantity <= 0) {
-        const filtered = cart.filter(entry => entry.productId !== productId);
-        localStorage.setItem(cartKey, JSON.stringify(filtered));
-    } else {
-        if (item.stock && item.quantity > item.stock) item.quantity = item.stock;
-        localStorage.setItem(cartKey, JSON.stringify(cart));
-    }
-    
-    renderCheckoutCart();
-    calculateFreightOptions(document.getElementById('checkoutState')?.value || 'SP');
-}
-
-// --- CONSULTA VIACEP OFICIAL COM TRATAMENTO QA ---
-async function searchCep() {
-    const cepInput = document.getElementById('checkoutCep');
-    const feedback = document.getElementById('cepFeedback');
-    if (!cepInput || !feedback) return;
-    
-    const cleanCep = cepInput.value.replace(/\D/g, '');
-    if (cleanCep.length !== 8) {
-        feedback.innerHTML = '<span class="text-danger">⚠️ Digite um CEP com 8 números para consultar.</span>';
-        return;
-    }
-    
-    feedback.innerHTML = '<span class="text-loading">🔍 Consultando ViaCEP...</span>';
-    try {
-        const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-        const data = await res.json();
-        
-        if (data.erro) {
-            feedback.innerHTML = '<span class="text-danger">❌ CEP não encontrado na base oficial dos Correios.</span>';
-            return;
-        }
-        
-        document.getElementById('checkoutStreet').value = data.logradouro || '';
-        document.getElementById('checkoutNeighborhood').value = data.bairro || '';
-        document.getElementById('checkoutCity').value = data.localidade || '';
-        document.getElementById('checkoutState').value = data.uf || '';
-        feedback.innerHTML = `<span class="text-success">✅ ${data.localidade} - ${data.uf} (${data.bairro || 'Localizado'})</span>`;
-        
-        document.getElementById('checkoutNumber')?.focus();
-        
-        // Atualiza frete baseado no estado
-        calculateFreightOptions(data.uf);
-    } catch (err) {
-        feedback.innerHTML = '<span class="text-danger">⚠️ Falha na consulta automática. Preencha os campos manualmente.</span>';
-    }
-}
-
-// --- CÁLCULO E OPÇÕES DE FRETE ---
-function calculateFreightOptions(uf = 'SP') {
-    const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    const stateUpper = String(uf || 'SP').toUpperCase();
-    const isSoutheast = ['SP', 'RJ', 'MG', 'ES'].includes(stateUpper);
-    const isSouth = ['PR', 'SC', 'RS'].includes(stateUpper);
-    const isNortheast = ['BA', 'PE', 'CE', 'RN', 'PB', 'AL', 'SE', 'MA', 'PI'].includes(stateUpper);
-    
-    let basePac = isSoutheast ? 15.90 : isSouth ? 22.90 : isNortheast ? 27.90 : 34.90;
-    let baseSedex = isSoutheast ? 28.90 : isSouth ? 37.90 : isNortheast ? 45.90 : 56.90;
-    
-    const pacDays = isSoutheast ? '3 a 5 dias úteis' : '5 a 8 dias úteis';
-    const sedexDays = isSoutheast ? '1 a 2 dias úteis' : '2 a 4 dias úteis';
-    
-    const hasFreeShipping = subtotal >= 250 || checkoutState.discountType === 'freight';
-    
-    const options = [
-        {
-            id: 'pac',
-            name: 'Correios PAC (Econômico)',
-            price: hasFreeShipping ? 0 : basePac,
-            originalPrice: basePac,
-            days: pacDays,
-            forecast: getSimulatedDeliveryDate(null, 3, 6),
-            isFree: hasFreeShipping,
-            badge: hasFreeShipping ? 'FRETE GRÁTIS' : 'ECONÔMICO'
-        },
-        {
-            id: 'sedex',
-            name: 'Correios SEDEX (Expresso)',
-            price: baseSedex,
-            originalPrice: baseSedex,
-            days: sedexDays,
-            forecast: getSimulatedDeliveryDate(null, 1, 2),
-            isFree: false,
-            badge: 'MAIS RÁPIDO'
-        },
-        {
-            id: 'pickup',
-            name: 'Retirada Expressa no Hub QA',
-            price: 0,
-            originalPrice: 0,
-            days: 'Disponível em 24h úteis',
-            forecast: getSimulatedDeliveryDate(null, 1, 1),
-            isFree: true,
-            badge: 'GRÁTIS'
-        }
-    ];
-    
-    checkoutState.freightOptions = options;
-    if (!checkoutState.selectedFreight || !options.find(o => o.id === checkoutState.selectedFreight.id)) {
-        checkoutState.selectedFreight = options[0];
-    }
-    
-    renderShippingOptions();
-    updateCheckoutSummary();
-}
-
-function renderShippingOptions() {
-    const container = document.getElementById('shippingOptionsContainer');
-    if (!container) return;
-    
-    container.innerHTML = checkoutState.freightOptions.map(opt => {
-        const isSelected = checkoutState.selectedFreight && checkoutState.selectedFreight.id === opt.id;
-        return `
-            <div class="shipping-option-card ${isSelected ? 'selected' : ''}" onclick="selectShippingOption('${opt.id}')">
-                <div class="shipping-opt-left">
-                    <input type="radio" name="shippingOpt" ${isSelected ? 'checked' : ''} style="width: auto;">
-                    <div class="shipping-opt-details">
-                        <strong>
-                            ${escapeHtml(opt.name)}
-                            <span class="shipping-badge ${opt.price === 0 ? 'free' : ''}">${opt.badge}</span>
-                        </strong>
-                        <span>Prazo: ${opt.days} (Previsão: ${opt.forecast})</span>
-                    </div>
-                </div>
-                <div class="shipping-opt-price">
-                    <strong>${opt.price === 0 ? 'GRÁTIS' : money(opt.price)}</strong>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function selectShippingOption(optionId) {
-    const opt = checkoutState.freightOptions.find(o => o.id === optionId);
-    if (opt) {
-        checkoutState.selectedFreight = opt;
-        renderShippingOptions();
-        updateCheckoutSummary();
-    }
-}
-
-// --- FORMAS DE PAGAMENTO & CUPOM ---
-function selectPaymentMethod(method) {
-    checkoutState.paymentMethod = method;
-    
-    document.querySelectorAll('.payment-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.method === method);
-    });
-    
-    document.getElementById('paymentCreditForm')?.classList.toggle('hidden', method !== 'credit');
-    document.getElementById('paymentPixForm')?.classList.toggle('hidden', method !== 'pix');
-    document.getElementById('paymentBoletoForm')?.classList.toggle('hidden', method !== 'boleto');
-    
-    updateCheckoutSummary();
-}
-
-function applyCoupon() {
-    const input = document.getElementById('couponCodeInput');
-    const feedback = document.getElementById('couponFeedback');
-    if (!input || !feedback) return;
-    
-    const code = input.value.trim().toUpperCase();
-    if (!code) {
-        checkoutState.discount = 0;
-        checkoutState.discountType = null;
-        checkoutState.couponCode = '';
-        feedback.innerHTML = '<span class="text-danger">Informe um código de cupom.</span>';
-        updateCheckoutSummary();
-        return;
-    }
-    
-    const coupon = AVAILABLE_COUPONS[code];
-    if (coupon) {
-        checkoutState.couponCode = code;
-        checkoutState.discountType = coupon.type;
-        feedback.innerHTML = `<span class="text-success">✅ ${coupon.label} aplicado com sucesso!</span>`;
-        if (coupon.type === 'freight') {
-            calculateFreightOptions(document.getElementById('checkoutState')?.value || 'SP');
-        }
-    } else {
-        checkoutState.discount = 0;
-        checkoutState.discountType = null;
-        checkoutState.couponCode = '';
-        feedback.innerHTML = '<span class="text-danger">❌ Cupom inválido ou expirado (teste com QA10, QA20, FRETEGRATIS ou ALUNOQA).</span>';
-    }
-    
-    updateCheckoutSummary();
-}
-
-// --- ATUALIZAÇÃO DO RESUMO FINANCEIRO DO CHECKOUT ---
-function updateCheckoutSummary() {
-    const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const freight = checkoutState.selectedFreight ? checkoutState.selectedFreight.price : 0;
-    
-    let discount = 0;
-    let discountLabel = '';
-    
-    // Desconto de cupom
-    if (checkoutState.couponCode && AVAILABLE_COUPONS[checkoutState.couponCode]) {
-        const c = AVAILABLE_COUPONS[checkoutState.couponCode];
-        if (c.type === 'percent') {
-            discount = subtotal * (c.value / 100);
-            discountLabel = `Cupom ${checkoutState.couponCode} (-${c.value}%)`;
-        } else if (c.type === 'fixed') {
-            discount = Math.min(c.value, subtotal);
-            discountLabel = `Cupom ${checkoutState.couponCode}`;
-        } else if (c.type === 'freight') {
-            discountLabel = 'Cupom Frete Grátis';
-        }
-    }
-    
-    // Desconto extra de 5% se for PIX
-    if (checkoutState.paymentMethod === 'pix') {
-        const pixDiscount = (subtotal - discount) * 0.05;
-        discount += pixDiscount;
-        discountLabel = discountLabel ? `${discountLabel} + PIX 5% OFF` : 'Desconto PIX (5% OFF)';
-    }
-    
-    checkoutState.discount = discount;
-    const finalTotal = Math.max(0, subtotal + freight - discount);
-    
-    // Atualiza elementos na tela
-    const subtotalEl = document.getElementById('summarySubtotal');
-    const itemsCountEl = document.getElementById('summaryItemsTotalCount');
-    const freightEl = document.getElementById('summaryFreight');
-    const freightNameEl = document.getElementById('summaryFreightName');
-    const discountRow = document.getElementById('summaryDiscountRow');
-    const discountEl = document.getElementById('summaryDiscount');
-    const discountLabelEl = document.getElementById('summaryDiscountLabel');
-    const totalEl = document.getElementById('summaryTotal');
-    const deliveryForecastEl = document.getElementById('summaryDeliveryEstimate');
-    
-    if (subtotalEl) subtotalEl.textContent = money(subtotal);
-    if (itemsCountEl) itemsCountEl.textContent = cart.reduce((s, i) => s + i.quantity, 0);
-    if (freightEl) freightEl.textContent = freight === 0 ? 'GRÁTIS' : money(freight);
-    if (freightNameEl) freightNameEl.textContent = checkoutState.selectedFreight ? checkoutState.selectedFreight.name.split(' ')[1] || 'Padrão' : 'Padrão';
-    
-    if (discountRow) {
-        if (discount > 0) {
-            discountRow.style.display = 'flex';
-            if (discountEl) discountEl.textContent = `- ${money(discount)}`;
-            if (discountLabelEl) discountLabelEl.textContent = discountLabel;
-        } else {
-            discountRow.style.display = 'none';
-        }
-    }
-    
-    if (totalEl) totalEl.textContent = money(finalTotal);
-    
-    if (deliveryForecastEl) {
-        if (checkoutState.selectedFreight) {
-            deliveryForecastEl.innerHTML = `📅 Previsão estimada: <strong>${checkoutState.selectedFreight.forecast}</strong> (${checkoutState.selectedFreight.days})`;
-        } else {
-            deliveryForecastEl.innerHTML = '📅 Previsão: <strong>Informe seu CEP</strong>';
-        }
-    }
-    
-    // Atualiza opções do dropdown de parcelamento
-    updateInstallmentsDropdown(finalTotal);
-}
-
-function updateInstallmentsDropdown(total) {
-    const select = document.getElementById('cardInstallments');
-    if (!select) return;
-    
-    const currentVal = select.value || '1';
-    let html = '';
-    for (let i = 1; i <= 12; i++) {
-        const val = total / i;
-        const jurosText = i <= 6 ? 'sem juros' : 'c/ juros 1.5% a.m.';
-        html += `<option value="${i}" ${i == currentVal ? 'selected' : ''}>${i}x de ${money(val)} (${jurosText})</option>`;
-    }
-    select.innerHTML = html;
-}
-
-// --- FINALIZAÇÃO DO PEDIDO (COMPATÍVEL COM API DO BACKEND) ---
-async function processOrderCheckout() {
-    if (user.role !== 'user') {
-        return showNotice('Apenas contas de Cliente podem finalizar pedidos.', true);
-    }
-    
-    const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
-    if (!cart.length) {
-        return showNotice('Seu carrinho está vazio.', true);
-    }
-    
-    // 1. Validação de Dados Pessoais & CPF
-    const name = document.getElementById('checkoutName')?.value.trim();
-    const email = document.getElementById('checkoutEmail')?.value.trim();
-    const cpf = document.getElementById('checkoutCpf')?.value.trim();
-    
-    if (!name) return showNotice('Por favor, informe seu nome completo.', true);
-    if (!email || !email.includes('@')) return showNotice('Informe um e-mail válido.', true);
-    if (!cpf || !validateCPF(cpf)) {
-        return showNotice('CPF inválido! Digite um CPF válido para simulação.', true);
-    }
-    
-    // 2. Validação de Endereço
-    const cep = document.getElementById('checkoutCep')?.value.trim();
-    const street = document.getElementById('checkoutStreet')?.value.trim();
-    const number = document.getElementById('checkoutNumber')?.value.trim();
-    const complement = document.getElementById('checkoutComplement')?.value.trim();
-    const neighborhood = document.getElementById('checkoutNeighborhood')?.value.trim();
-    const city = document.getElementById('checkoutCity')?.value.trim();
-    const state = document.getElementById('checkoutState')?.value.trim();
-    
-    if (!cep || !street || !number || !neighborhood || !city || !state) {
-        return showNotice('Preencha todos os campos obrigatórios do endereço de entrega.', true);
-    }
-    
-    // 3. Validação de Pagamento
-    let paymentMethodName = 'Cartão de Crédito';
-    let paymentDetail = '1x sem juros';
-    
-    if (checkoutState.paymentMethod === 'credit') {
-        const cardNum = document.getElementById('cardNum')?.value.replace(/\D/g, '');
-        const cardHolder = document.getElementById('cardHolder')?.value.trim();
-        const cardExpiry = document.getElementById('cardExpiry')?.value.trim();
-        const cardCvv = document.getElementById('cardCvv')?.value.trim();
-        const inst = document.getElementById('cardInstallments')?.value || '1';
-        
-        if (!cardNum || cardNum.length < 13) return showNotice('Informe um número de cartão de crédito válido.', true);
-        if (!cardHolder) return showNotice('Informe o nome impresso no cartão.', true);
-        if (!cardExpiry || cardExpiry.length < 5) return showNotice('Informe a validade do cartão (MM/AA).', true);
-        if (!cardCvv || cardCvv.length < 3) return showNotice('Informe o código CVV do cartão.', true);
-        
-        const brand = detectCardBrand(cardNum);
-        paymentMethodName = `Cartão de Crédito (${brand.name} final ${cardNum.slice(-4)})`;
-        paymentDetail = `${inst}x parcelado`;
-    } else if (checkoutState.paymentMethod === 'pix') {
-        paymentMethodName = 'PIX (À vista com 5% de desconto)';
-        paymentDetail = 'Pagamento Instantâneo Confirmado';
-    } else if (checkoutState.paymentMethod === 'boleto') {
-        paymentMethodName = 'Boleto Bancário Registrado';
-        paymentDetail = 'Vencimento em 3 dias úteis';
-    }
-    
-    const freightName = checkoutState.selectedFreight ? checkoutState.selectedFreight.name : 'PAC (Padrão)';
-    const freightPrice = checkoutState.selectedFreight ? checkoutState.selectedFreight.price : 0;
-    const deliveryForecast = checkoutState.selectedFreight ? checkoutState.selectedFreight.forecast : getSimulatedDeliveryDate(null, 4, 7);
-    
-    // Constrói a string rica de endereço compatível com o backend
-    const fullAddress = `${street}, ${number}${complement ? ` (${complement})` : ''} - ${neighborhood}, ${city}/${state.toUpperCase()} (CEP: ${cep})`;
-    const formattedShippingString = `${fullAddress} | Frete: ${freightName} (${money(freightPrice)}) | Pagamento: ${paymentMethodName} | CPF: ${cpf}`;
-    
-    const submitBtn = document.getElementById('btnSubmitOrder');
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Processando pedido...';
-    }
-    
-    try {
-        const orderResponse = await api('/orders', {
-            method: 'POST',
-            body: JSON.stringify({
-                shippingAddress: formattedShippingString,
-                items: cart.map(item => ({ productId: item.productId, quantity: item.quantity }))
-            })
-        });
-        
-        // Salva os metadados ricos para visualização detalhada posterior
-        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        saveOrderMeta(orderResponse._id, {
-            subtotal,
-            freight: freightPrice,
-            discount: checkoutState.discount,
-            couponCode: checkoutState.couponCode,
-            shippingName: freightName,
-            deliveryForecast,
-            paymentMethodName,
-            paymentDetail,
-            fullAddress,
-            cpf,
-            items: cart.map(item => ({
-                productId: item.productId,
-                name: item.name,
-                price: item.price,
-                quantity: item.quantity
-            }))
-        });
-        
-        // Limpa o carrinho
-        localStorage.removeItem(cartKey);
-        
-        // Oculta checkout e exibe aviso de sucesso
-        document.getElementById('checkoutSection').classList.add('hidden');
-        showNotice('🎉 Pedido realizado com sucesso! Comprovante e detalhes disponíveis abaixo.');
-        
-        // Recarrega lista de pedidos e abre o modal imediatamente
-        await loadOrders();
-        openOrderModal(orderResponse._id);
-        
-    } catch (error) {
-        showNotice(error.message, true);
-    } finally {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = '🔒 Confirmar e Finalizar Pedido';
-        }
-    }
 }
 
 // --- PAINEL DO LOJISTA (COM ID VISUAL DE PRODUTO) ---
@@ -1130,7 +488,7 @@ function renderUsers(page = adminState.pages.users) {
                     </div>
                 </button>
                 <div class="user-card-body">
-                    ${isTestUser ? '<div class="user-card-note">⚠️ Usuário de teste – edição desabilitada para preservação de massa de testes de QA.</div>' : ''}
+                    ${isTestUser ? '<div class="user-card-note"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg> Usuário de teste – edição desabilitada para preservação de massa de testes de QA.</div>' : ''}
                     <div class="user-card-grid">
                         <label>
                             <span>Nome completo</span>
@@ -1306,7 +664,7 @@ function renderStores(page = adminState.pages.stores) {
             <article class="user-card">
                 <button class="user-card-toggle" type="button" onclick="toggleCard(this.closest('.user-card'))">
                     <div>
-                        <strong>🏪 ${escapeHtml(store.storeName || 'Loja sem nome')}</strong>
+                        <strong><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>${escapeHtml(store.storeName || 'Loja sem nome')}</strong>
                         <div class="user-card-email">Responsável: ${escapeHtml(store.name || 'Sem nome')} (${escapeHtml(store.email)}) · <strong>${storeProducts.length} produto(s)</strong></div>
                     </div>
                     <div class="user-card-meta">
@@ -1340,8 +698,8 @@ function renderStores(page = adminState.pages.stores) {
                     <!-- SUBMENU: PRODUTOS DESTA LOJA EM ESPECÍFICO -->
                     <div class="store-products-container">
                         <div class="store-products-header">
-                            <h4>📦 Produtos Cadastrados desta Loja (${storeProducts.length})</h4>
-                            <button class="ghost-button" type="button" onclick="filterProductsByStore('${store._id}')">🔍 Ver no Catálogo Geral</button>
+                            <h4>Produtos Cadastrados desta Loja (${storeProducts.length})</h4>
+                            <button class="ghost-button" type="button" onclick="filterProductsByStore('${store._id}')">Ver no Catálogo Geral</button>
                         </div>
                         <div class="store-products-list">
                             ${storeProducts.length ? storeProducts.map(p => `
@@ -1426,7 +784,7 @@ function renderProducts(page = adminState.pages.products) {
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
                             <span class="product-id-tag">${visualId}</span>
                             <strong>${escapeHtml(product.name)}</strong>
-                            <span class="badge seller">🏪 ${escapeHtml(storeName)}</span>
+                            <span class="badge seller">${escapeHtml(storeName)}</span>
                         </div>
                         <div class="user-card-email">Código: <code>${visualId}</code> (${product._id}) · Categoria: ${escapeHtml(product.category)} · <strong>${money(product.price)}</strong></div>
                     </div>
@@ -1545,13 +903,11 @@ document.getElementById('productForm')?.addEventListener('submit', saveProduct);
     if (el) el.addEventListener('change', () => renderProducts(1));
 });
 
-// Trata navegação para o Checkout via Hash
+// Trata navegação legada caso alguém acerte painel.html#checkout
 function handleHashNavigation() {
     if (window.location.hash === '#checkout') {
         if (user.role === 'user') {
-            document.getElementById('checkoutSection').classList.remove('hidden');
-            initCheckout();
-            document.getElementById('checkoutSection').scrollIntoView({ behavior: 'smooth' });
+            window.location.replace('checkout.html');
         } else {
             showNotice('Seu perfil (' + (user.role === 'seller' ? 'Lojista' : 'Administrador') + ') tem permissão apenas para gerenciamento e não pode realizar compras.', true);
         }
@@ -1565,4 +921,5 @@ configurePanel();
 if (user.role === 'user') loadOrders();
 if (user.role === 'seller') loadSellerData();
 handleHashNavigation();
+
 

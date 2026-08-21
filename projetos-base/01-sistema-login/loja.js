@@ -118,14 +118,16 @@ function renderProducts() {
         let actionButtonHtml = '';
         if (isSeller) {
             actionButtonHtml = `
-                <button class="primary-button btn-view-only" type="button" onclick="showToast('🏪 Perfil Lojista: permitido apenas visualização. Compras são exclusivas de clientes.')" title="Perfil Lojista: Apenas visualização de catálogo">
-                    👁️ Modo Lojista (Apenas visualização)
+                <button class="primary-button btn-view-only" type="button" onclick="showToast('Perfil Lojista: permitido apenas visualização. Compras são exclusivas de clientes.')" title="Perfil Lojista: Apenas visualização de catálogo">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 5px;"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                    Modo Lojista (Visualização)
                 </button>
             `;
         } else if (isAdmin) {
             actionButtonHtml = `
-                <button class="primary-button btn-view-only" type="button" onclick="showToast('🛡️ Perfil Administrador: permitido apenas visualização. Compras são exclusivas de clientes.')" title="Perfil Administrador: Apenas visualização de catálogo">
-                    👁️ Modo Admin (Apenas visualização)
+                <button class="primary-button btn-view-only" type="button" onclick="showToast('Perfil Administrador: permitido apenas visualização. Compras são exclusivas de clientes.')" title="Perfil Administrador: Apenas visualização de catálogo">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 5px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Modo Admin (Visualização)
                 </button>
             `;
         } else {
@@ -145,7 +147,7 @@ function renderProducts() {
                 <div class="product-content">
                     <div class="product-meta-header">
                         <span class="product-category">${escapeHtml(product.category)}</span>
-                        <span class="product-store-badge" title="Loja: ${escapeHtml(storeName)}">🏪 ${escapeHtml(storeName)}</span>
+                        <span class="product-store-badge" title="Loja: ${escapeHtml(storeName)}"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px; margin-right: 3px;"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>${escapeHtml(storeName)}</span>
                     </div>
                     <h3>${escapeHtml(product.name)}</h3>
                     <div class="product-full-id">Código: <code>${visualId}</code> <span style="font-size:10px; color:#94a3b8;">(${product._id})</span></div>
@@ -169,10 +171,10 @@ function persistCart() {
 function addToCart(productId) {
     const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
     if (user && user.role === 'seller') {
-        return showToast('🏪 Lojistas possuem acesso apenas para visualização do catálogo e não podem comprar.');
+        return showToast('Lojistas possuem acesso apenas para visualização do catálogo e não podem comprar.');
     }
     if (user && user.role === 'admin') {
-        return showToast('🛡️ Administradores possuem acesso apenas para visualização e não podem comprar.');
+        return showToast('Administradores possuem acesso apenas para visualização e não podem comprar.');
     }
 
     const product = state.products.find(item => item._id === productId);
@@ -192,8 +194,12 @@ function changeQuantity(productId, amount) {
     const item = state.cart.find(entry => entry.productId === productId);
     if (!item) return;
     item.quantity += amount;
-    if (item.quantity <= 0) state.cart = state.cart.filter(entry => entry.productId !== productId);
-    if (item.quantity > item.stock) item.quantity = item.stock;
+    if (item.quantity <= 0) {
+        state.cart = state.cart.filter(entry => entry.productId !== productId);
+    } else {
+        const product = state.products.find(entry => entry._id === productId);
+        if (product && item.quantity > product.stock) item.quantity = product.stock;
+    }
     persistCart();
 }
 
@@ -250,10 +256,10 @@ function closeCart() {
 function checkout() {
     const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
     if (user && user.role === 'seller') {
-        return showToast('🏪 Conta de Lojista: você pode visualizar produtos, mas não realizar compras.');
+        return showToast('Conta de Lojista: você pode visualizar produtos, mas não realizar compras.');
     }
     if (user && user.role === 'admin') {
-        return showToast('🛡️ Conta de Administrador: você pode visualizar produtos, mas não realizar compras.');
+        return showToast('Conta de Administrador: você pode visualizar produtos, mas não realizar compras.');
     }
     if (!state.cart.length) return showToast('Adicione pelo menos um produto para continuar.');
     if (!localStorage.getItem('token')) {
@@ -261,7 +267,7 @@ function checkout() {
         setTimeout(() => window.location.href = 'login.html?return=checkout', 700);
         return;
     }
-    window.location.href = 'painel.html#checkout';
+    window.location.href = 'checkout.html';
 }
 
 function showToast(message) {
