@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <title>Finalizar Compra | LojaQA</title>
+    <link rel="stylesheet" href="checkout.css">
+</head>
+<body>
+    <!-- CABEÇALHO DO CHECKOUT -->
+    <header class="checkout-header">
+        <div class="header-container">
+            <a class="brand" href="loja.html">Loja<span>QA</span></a>
+            
+            <div class="checkout-steps-badge">
+                <span class="step-indicator done">1. Carrinho</span>
+                <span class="step-separator">›</span>
+                <span class="step-indicator active">2. Entrega & Pagamento</span>
+                <span class="step-separator">›</span>
+                <span class="step-indicator">3. Confirmação</span>
+            </div>
+
+            <div class="header-user-info">
+                <span id="checkoutUserGreeting"></span>
+                <a href="loja.html" class="ghost-link">← Voltar à Loja</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="checkout-page-container">
+        <!-- AVISO/NOTIFICAÇÃO FLUTUANTE -->
+        <div id="checkoutNotice" class="checkout-notice"></div>
+
+        <div class="checkout-layout">
+            <!-- COLUNA ESQUERDA: FORMULÁRIOS DE IDENTIFICAÇÃO, ENDEREÇO E PAGAMENTO -->
+            <div class="checkout-forms-column">
+                
+                <!-- 1. DADOS DO COMPRADOR & CPF -->
+                <section class="checkout-section-card">
+                    <div class="section-card-header">
+                        <div class="header-title-group">
+                            <span class="step-circle">1</span>
+                            <div>
+                                <h2>Identificação do Comprador</h2>
+                                <p>Dados pessoais para emissão e validação de QA</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="section-card-body">
+                        <div class="form-row-2">
+                            <div class="form-field">
+                                <label for="buyerName">Nome Completo</label>
+                                <input id="buyerName" type="text" placeholder="Nome completo do comprador" required autocomplete="name">
+                            </div>
+                            <div class="form-field">
+                                <label for="buyerEmail">E-mail para Confirmação</label>
+                                <input id="buyerEmail" type="email" placeholder="seu@email.com" required autocomplete="email">
+                            </div>
+                        </div>
+
+                        <div class="form-row-2">
+                            <div class="form-field">
+                                <label for="buyerPhone">Telefone / WhatsApp</label>
+                                <input id="buyerPhone" type="tel" placeholder="(00) 00000-0000" maxlength="15" autocomplete="tel">
+                            </div>
+                            <div class="form-field">
+                                <label for="buyerCpf">CPF do Titular <span class="label-badge-qa">Validação Oficial QA</span></label>
+                                <input id="buyerCpf" type="text" placeholder="000.000.000-00" maxlength="14" required>
+                                
+                                <!-- Mensagem de Validação do CPF posicionada abaixo do input (sem cobrir o texto) -->
+                                <div id="cpfFeedbackContainer" class="field-feedback-box">
+                                    <span id="cpfStatusBadge" class="status-pill default">Aguardando CPF</span>
+                                    <span id="cpfHelpMessage">Digite os 11 dígitos para cálculo dos dígitos verificadores.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. ENDEREÇO DE ENTREGA & VIACEP -->
+                <section class="checkout-section-card">
+                    <div class="section-card-header">
+                        <div class="header-title-group">
+                            <span class="step-circle">2</span>
+                            <div>
+                                <h2>Endereço de Entrega</h2>
+                                <p>Informe o CEP para preenchimento automático via API ViaCEP</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-card-body">
+                        <!-- LINHA DO CEP -->
+                        <div class="cep-lookup-row">
+                            <div class="form-field cep-input-field">
+                                <label for="deliveryCep">CEP</label>
+                                <div class="input-action-group">
+                                    <input id="deliveryCep" type="text" placeholder="00000-000" maxlength="9" required>
+                                    <button type="button" class="btn-action-cep" id="btnLookupCep" onclick="handleCepSearch()">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                                        Buscar CEP
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="cepFeedbackBox" class="cep-status-message"></div>
+                        </div>
+
+                        <!-- RUA E NÚMERO -->
+                        <div class="form-row-street">
+                            <div class="form-field field-street">
+                                <label for="deliveryStreet">Logradouro / Rua / Avenida</label>
+                                <input id="deliveryStreet" type="text" placeholder="Ex: Av. Paulista, Rua das Flores" required>
+                            </div>
+                            <div class="form-field field-number">
+                                <label for="deliveryNumber">Número</label>
+                                <input id="deliveryNumber" type="text" placeholder="Ex: 123" required>
+                            </div>
+                        </div>
+
+                        <!-- COMPLEMENTO E BAIRRO -->
+                        <div class="form-row-2">
+                            <div class="form-field">
+                                <label for="deliveryComplement">Complemento (Opcional)</label>
+                                <input id="deliveryComplement" type="text" placeholder="Apto, Bloco, Sala, Casa 2">
+                            </div>
+                            <div class="form-field">
+                                <label for="deliveryNeighborhood">Bairro</label>
+                                <input id="deliveryNeighborhood" type="text" placeholder="Bairro" required>
+                            </div>
+                        </div>
+
+                        <!-- CIDADE E ESTADO COM ESPAÇO AMPLO -->
+                        <div class="form-row-city-state">
+                            <div class="form-field field-city">
+                                <label for="deliveryCity">Cidade</label>
+                                <input id="deliveryCity" type="text" placeholder="Nome da cidade" required>
+                            </div>
+                            <div class="form-field field-state">
+                                <label for="deliveryState">Estado (UF)</label>
+                                <input id="deliveryState" type="text" placeholder="UF" maxlength="2" required style="text-transform: uppercase;">
+                            </div>
+                        </div>
+
+                        <!-- PONTO DE REFERÊNCIA -->
+                        <div class="form-field" style="margin-top: 14px;">
+                            <label for="deliveryReference">Ponto de Referência (Opcional)</label>
+                            <input id="deliveryReference" type="text" placeholder="Ex: Próximo ao metrô, em frente à praça">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. FORMAS DE ENVIO E PRAZOS -->
+                <section class="checkout-section-card">
+                    <div class="section-card-header">
+                        <div class="header-title-group">
+                            <span class="step-circle">3</span>
+                            <div>
+                                <h2>Opção de Frete & Estimativa de Prazo</h2>
+                                <p>Prazos e valores calculados com base no seu CEP</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-card-body">
+                        <div id="shippingCardsGrid" class="shipping-grid">
+                            <!-- Inserido dinamicamente via checkout.js -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. FORMAS DE PAGAMENTO -->
+                <section class="checkout-section-card">
+                    <div class="section-card-header">
+                        <div class="header-title-group">
+                            <span class="step-circle">4</span>
+                            <div>
+                                <h2>Forma de Pagamento</h2>
+                                <p>Selecione a modalidade de pagamento desejada</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-card-body">
+                        <!-- ABAS DE FORMA DE PAGAMENTO -->
+                        <div class="payment-methods-tabs">
+                            <button type="button" class="pay-tab active" data-method="credit" onclick="switchPayment('credit')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                                <span class="tab-text">Cartão de Crédito</span>
+                            </button>
+                            <button type="button" class="pay-tab" data-method="pix" onclick="switchPayment('pix')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" x2="12" y1="22" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/></svg>
+                                <span class="tab-text">PIX <small class="tab-discount-tag">5% OFF</small></span>
+                            </button>
+                            <button type="button" class="pay-tab" data-method="boleto" onclick="switchPayment('boleto')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+                                <span class="tab-text">Boleto Bancário</span>
+                            </button>
+                        </div>
+
+                        <!-- ABA CARTÃO DE CRÉDITO -->
+                        <div id="paneCredit" class="payment-subpane active">
+                            <div class="form-row-2">
+                                <div class="form-field">
+                                    <label for="cardNumber">Número do Cartão</label>
+                                    <div class="input-card-group">
+                                        <input id="cardNumber" type="text" placeholder="0000 0000 0000 0000" maxlength="19" autocomplete="cc-number">
+                                        <span id="detectedBrandIcon" class="brand-flag-pill">Cartão</span>
+                                    </div>
+                                </div>
+                                <div class="form-field">
+                                    <label for="cardHolderName">Nome Impresso no Cartão</label>
+                                    <input id="cardHolderName" type="text" placeholder="Nome exatamente como no cartão" autocomplete="cc-name">
+                                </div>
+                            </div>
+
+                            <div class="form-row-3">
+                                <div class="form-field">
+                                    <label for="cardExpiryDate">Validade (MM/AA)</label>
+                                    <input id="cardExpiryDate" type="text" placeholder="MM/AA" maxlength="5" autocomplete="cc-exp">
+                                </div>
+                                <div class="form-field">
+                                    <label for="cardCvvCode">Código CVV</label>
+                                    <input id="cardCvvCode" type="text" placeholder="123" maxlength="4" autocomplete="cc-csc">
+                                </div>
+                                <div class="form-field">
+                                    <label for="cardInstallmentsSelect">Opções de Parcelamento</label>
+                                    <select id="cardInstallmentsSelect"></select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ABA PIX -->
+                        <div id="panePix" class="payment-subpane hidden">
+                            <div class="pix-payment-box">
+                                <div class="pix-qr-wrapper">
+                                    <div class="pix-qr-graphic">
+                                        <div class="qr-code-pattern"></div>
+                                        <span>PIX LOJAQA</span>
+                                    </div>
+                                </div>
+                                <div class="pix-details-wrapper">
+                                    <div class="pix-badge-discount">5% de Desconto Imediato no PIX</div>
+                                    <h3>Pagamento Instantâneo sem Taxas</h3>
+                                    <p>O código PIX é válido por <strong>30 minutos</strong>. A compensação é imediata e seu pedido será separado na hora.</p>
+                                    
+                                    <div class="pix-copypaste-bar">
+                                        <input id="pixCopyInput" type="text" readonly value="00020126580014BR.GOV.BCB.PIX0136lojaqa-pagamentos@system.com5204000053039865802BR5925LOJAQA COMERCIO DE TECH6009SAO PAULO62070503***6304">
+                                        <button type="button" class="btn-copy-pix" onclick="copyPixCodeToClipboard()">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                            Copiar Código PIX
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ABA BOLETO -->
+                        <div id="paneBoleto" class="payment-subpane hidden">
+                            <div class="boleto-payment-box">
+                                <div class="boleto-header-bar">
+                                    <strong>Boleto Bancário Registrado</strong>
+                                    <span>Vencimento em 3 dias úteis</span>
+                                </div>
+                                <p>Você pode pagar pelo internet banking, aplicativo do seu banco ou em qualquer agência bancária ou casa lotérica.</p>
+                                <div class="boleto-copypaste-bar">
+                                    <input id="boletoBarcodeInput" type="text" readonly value="34191.79001 01043.510047 91020.150008 8 98760000000000">
+                                    <button type="button" class="btn-copy-boleto" onclick="copyBoletoToClipboard()">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                        Copiar Linha Digitável
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- COLUNA DIREITA: RESUMO DO PEDIDO, CUPOM E BOTÃO DE FINALIZAÇÃO -->
+            <aside class="checkout-summary-column">
+                <div class="summary-sticky-card">
+                    <div class="summary-header">
+                        <h3>Resumo do Pedido</h3>
+                        <span id="summaryHeaderCount" class="count-pill">0 itens</span>
+                    </div>
+
+                    <!-- LISTA DOS PRODUTOS -->
+                    <div class="summary-products-box">
+                        <div class="products-box-toggle" onclick="toggleSummaryProducts()">
+                            <span>Itens no carrinho (<strong id="summaryProductsCount">0</strong>)</span>
+                            <span id="summaryToggleIcon" class="toggle-icon">▼</span>
+                        </div>
+                        <div id="summaryProductsList" class="summary-products-list"></div>
+                    </div>
+
+                    <!-- CUPOM DE DESCONTO -->
+                    <div class="summary-coupon-box">
+                        <label for="couponInput">Cupom de Desconto</label>
+                        <div class="coupon-input-group">
+                            <input id="couponInput" type="text" placeholder="Código do cupom" style="text-transform: uppercase;">
+                            <button type="button" class="btn-apply-coupon" onclick="applyCouponCode()">Aplicar</button>
+                        </div>
+                        <div id="couponFeedbackMessage" class="coupon-msg"></div>
+                        <div class="qa-coupon-hints">
+                            <span>Cupons QA: <code>QA10</code> (10%), <code>QA20</code> (20%), <code>FRETEGRATIS</code>, <code>ALUNOQA</code> (R$30)</span>
+                        </div>
+                    </div>
+
+                    <!-- LINHAS DE VALORES -->
+                    <div class="summary-pricing-table">
+                        <div class="price-row">
+                            <span>Subtotal dos Produtos</span>
+                            <strong id="priceSubtotal">R$ 0,00</strong>
+                        </div>
+                        <div class="price-row">
+                            <span>Frete (<span id="priceShippingType">Padrão</span>)</span>
+                            <strong id="priceShipping">R$ 0,00</strong>
+                        </div>
+                        <div class="price-row discount-row" id="priceDiscountRow" style="display: none;">
+                            <span>Desconto (<span id="priceDiscountName">Cupom</span>)</span>
+                            <strong id="priceDiscount">- R$ 0,00</strong>
+                        </div>
+                        <div class="price-row total-row">
+                            <span>Total Final</span>
+                            <strong id="priceTotal">R$ 0,00</strong>
+                        </div>
+                    </div>
+
+                    <!-- ESTIMATIVA DE ENTREGA -->
+                    <div class="delivery-estimate-card" id="deliveryEstimateCard">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+                        <div>
+                            <span>Previsão de Entrega:</span>
+                            <strong id="deliveryEstimateText">Informe seu CEP</strong>
+                        </div>
+                    </div>
+
+                    <!-- BOTÃO PRINCIPAL DE FINALIZAÇÃO -->
+                    <button type="button" id="btnPlaceOrder" class="btn-confirm-order" onclick="submitCompleteOrder()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Confirmar e Finalizar Pedido
+                    </button>
+
+                    <div class="security-guarantee">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <span>Ambiente de Testes & Simulação QA</span>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <script src="checkout.js"></script>
+</body>
+</html>

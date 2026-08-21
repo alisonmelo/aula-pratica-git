@@ -137,7 +137,7 @@ async function attemptLogin() {
             
             showInfo(`Login bem-sucedido. Redirecionando...`);
             const returnToCheckout = new URLSearchParams(window.location.search).get('return') === 'checkout';
-            setTimeout(() => window.location.href = returnToCheckout ? 'painel.html#checkout' : 'painel.html', 500);
+            setTimeout(() => window.location.href = returnToCheckout ? 'checkout.html' : 'painel.html', 500);
             
         } else {
             let attempts = parseInt(localStorage.getItem(failedKey(email)) || '0') + 1;
