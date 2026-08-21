@@ -189,7 +189,12 @@ function openOrderModal(orderId) {
     document.getElementById('modalOrderDate').textContent = `${new Date(order.createdAt).toLocaleDateString('pt-BR')} às ${new Date(order.createdAt).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}`;
     
     const statusText = (order.status || 'aprovado').toUpperCase();
-    document.getElementById('modalOrderStatusBadge').textContent = statusText;
+    const statusBadge = document.getElementById('modalOrderStatusBadge');
+    if (statusBadge) {
+        statusBadge.textContent = statusText;
+        // BUG VISUAL QA: Aplica a classe de estilo 'blocked' (vermelho/alerta) para pedidos Aprovados
+        statusBadge.className = 'status blocked';
+    }
     
     // Atualiza Stepper de Rastreio com base no status
     const stepper = document.getElementById('modalTrackingStepper');
@@ -251,7 +256,8 @@ function openOrderModal(orderId) {
     const discount = meta.discount !== undefined ? meta.discount : 0;
     
     document.getElementById('modalOrderSubtotal').textContent = money(subtotal);
-    document.getElementById('modalOrderFreight').textContent = freight === 0 ? 'Grátis (R$ 0,00)' : money(freight);
+    // BUG VISUAL QA: Exibe valor com concatenação simples sem formatador de duas casas decimais (ex: R$ 16.9)
+    document.getElementById('modalOrderFreight').textContent = freight === 0 ? 'Grátis (R$ 0,00)' : `R$ ${freight}`;
     
     const discRow = document.getElementById('modalOrderDiscountRow');
     if (discount > 0) {

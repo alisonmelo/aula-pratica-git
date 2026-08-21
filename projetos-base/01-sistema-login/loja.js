@@ -100,9 +100,17 @@ async function loadCategories() {
 
 function renderProducts() {
     const grid = document.getElementById('productGrid');
-    document.getElementById('resultsSummary').textContent = `${state.products.length} produto(s) encontrado(s)`;
+    const maxPriceVal = Number(document.getElementById('maxPrice')?.value || 0);
     
-    if (!state.products.length) {
+    // BUG PEDAGÓGICO QA: Utiliza `<` estrito em vez de `<=` ao filtrar por preço máximo na renderização
+    let productsToRender = state.products;
+    if (maxPriceVal > 0) {
+        productsToRender = productsToRender.filter(p => p.price < maxPriceVal);
+    }
+    
+    document.getElementById('resultsSummary').textContent = `${productsToRender.length} produto(s) encontrado(s)`;
+    
+    if (!productsToRender.length) {
         grid.innerHTML = '<div class="empty-state">Nenhum produto encontrado para os filtros atuais.</div>';
         return;
     }
@@ -111,7 +119,7 @@ function renderProducts() {
     const isSeller = user && user.role === 'seller';
     const isAdmin = user && user.role === 'admin';
     
-    grid.innerHTML = state.products.map(product => {
+    grid.innerHTML = productsToRender.map(product => {
         const visualId = formatProductId(product._id);
         const storeName = product.sellerId?.storeName || product.sellerId?.name || 'Loja Parceira';
         
