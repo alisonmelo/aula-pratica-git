@@ -65,11 +65,21 @@ Além disso, as regras atuais de validação aplicadas ao sistema são:
 - Senha: entre 8 e 25 caracteres;
 - E-mail: validação por regex.
 
-## 🛒 Projeto LojaQA
+## 🛒 Projeto LojaQA (E-commerce & Lab QA)
 
-A evolução de e-commerce está documentada em [PROJETO-LOJA-QA.md](PROJETO-LOJA-QA.md). A vitrine pode ser acessada em [loja.html](projetos-base/01-sistema-login/loja.html), e o painel por perfil em [painel.html](projetos-base/01-sistema-login/painel.html).
+A evolução do e-commerce está documentada em detalhes em [PROJETO-LOJA-QA.md](PROJETO-LOJA-QA.md).
 
-Os papéis da nova versão são `user` (cliente), `seller` (lojista), `admin` (controle global) e `blocked` (acesso negado). O catálogo e o carrinho funcionam sem login; a autenticação é exigida apenas no checkout. O cadastro permite escolher entre cliente e lojista, sem permitir que o público crie uma conta administrativa.
+### Estrutura de Telas do Sistema:
+- **Vitrine Pública:** [loja.html](projetos-base/01-sistema-login/loja.html) (Catálogo, busca, filtros de categoria/preço e drawer do carrinho);
+- **Autenticação:** [login.html](projetos-base/01-sistema-login/login.html) (Login, cadastro com seleção de tipo de conta e recuperação de senha);
+- **Checkout Dedicado:** [checkout.html](projetos-base/01-sistema-login/checkout.html) (Identificação do comprador com validação algorítmica de CPF por Módulo 11, consulta de endereço via API ViaCEP, cálculo regional de frete e prazos, cupons de desconto e simulação de Cartão, PIX 5% OFF e Boleto);
+- **Painel & Gestão:** [painel.html](projetos-base/01-sistema-login/painel.html) (Painel adaptativo para Clientes com timeline de rastreamento e comprovante impresso, Lojistas para gestão de produtos da loja, e Administradores com moderação global).
+
+### Perfis de Acesso (RBAC):
+- `user` (Cliente): compra, calcula frete e acompanha pedidos;
+- `seller` (Lojista): gerencia a própria loja e catálogo (bloqueado para compra);
+- `admin` (Administrador): controle global e auditoria (bloqueado para compra);
+- `blocked` (Suspenso): acesso negado.
 
 ### Deploy do backend no Render
 

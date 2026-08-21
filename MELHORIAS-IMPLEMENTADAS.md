@@ -386,6 +386,37 @@ npm start
 
 ---
 
+## 6️⃣ Checkout Dedicado, Validações e Controle de Acesso (RBAC)
+
+### ✨ Melhorias
+
+#### A. **Página de Checkout Dedicada (`checkout.html`, `checkout.css`, `checkout.js`)**
+- **Arquitetura**: Separação completa do checkout em duas colunas responsivas:
+  - **Coluna Esquerda**: Cards de identificação do comprador, endereço de entrega, opções de frete e abas de pagamento.
+  - **Coluna Direita**: Card sticky com resumo do pedido, lista colapsável de itens, caixa de cupons QA, discriminação de valores e estimativa de entrega.
+- **Redirecionamento Pós-Compra**: Ao finalizar o pedido, o cliente é redirecionado para `painel.html?orderId={id}#ordersSection`, abrindo imediatamente o modal com a linha do tempo de rastreamento do pedido.
+
+#### B. **Validação Algorítmica de CPF (Módulo 11 Oficial)**
+- **Implementação**: Cálculo dos 2 dígitos verificadores conforme algoritmo da Receita Federal.
+- **UX/UI**: Mensagem e badge verde/vermelho posicionados abaixo do campo de entrada, sem sobrepor o valor digitado.
+
+#### C. **Integração com API dos Correios (ViaCEP) e Frete Regional**
+- **ViaCEP**: Ao digitar 8 dígitos ou clicar em "Buscar CEP", consulta assíncrona da API oficial dos Correios e auto-preenchimento de Logradouro, Bairro, Cidade e UF.
+- **Frete Regional**: Prazos e valores calculados dinamicamente para Sudeste, Sul, Nordeste e demais regiões.
+
+#### D. **Simulação Financeira Completa (Cartão, PIX 5% OFF, Boleto)**
+- **Cartão de Crédito**: Detecção instantânea de bandeiras (Visa, Mastercard, Elo, Amex, Hipercard) e opções de parcelamento.
+- **PIX**: Geração de código Copia e Cola e QR Code com aplicação automática de **5% de desconto**.
+- **Boleto**: Geração de linha digitável bancária registrada e botão de cópia.
+
+#### E. **Restrição de Compra por Perfil (RBAC)**
+- Usuários com perfil `seller` (Lojista) ou `admin` (Administrador) são impedidos de realizar compras (botões atuam apenas como visualização de catálogo).
+
+#### F. **Refatoração de Ícones Vetoriais (SVG Puro)**
+- Substituição de emojis por ícones vetoriais inline SVG no padrão Lucide/Feather, garantindo nitidez, compatibilidade cross-platform e elegância visual.
+
+---
+
 ## 📝 Notas Técnicas
 
 - **JWT Expiration**: 1 hora (padrão enterprise)
@@ -406,17 +437,24 @@ npm start
 - [x] Real-time form validation
 - [x] Button disabled states with CSS
 - [x] Dynamic page title
-- [x] Password visibility toggle
+- [x] Password visibility toggle com SVG
 - [x] express-rate-limit instalado
 - [x] Rate limiting em /api/login
 - [x] Rate limiting em /api/forgot-password
+- [x] Checkout dedicado em `checkout.html`
+- [x] Validação algorítmica de CPF (Módulo 11)
+- [x] Integração com API ViaCEP
+- [x] Simulação de frete e prazos regionais
+- [x] Simulação de pagamentos (Cartão, PIX 5% OFF, Boleto)
+- [x] Restrição de compra para Lojista e Admin (RBAC)
+- [x] Refatoração de ícones para SVG inline
 - [x] Testes manuais realizados
-- [x] Documentação completa
+- [x] Documentação completa para alunos de QA em `PROJETO-LOJA-QA.md`
 
 ---
 
-**Status Final**: 🎉 **COMPLETO E PRONTO PARA PRODUÇÃO**
+**Status Final**: 🎉 **COMPLETO E PRONTO PARA AULAS DE QA**
 
 Desenvolvido por: Desenvolvedor Sênior  
-Padrão: Enterprise-Grade Security  
-Conformidade: OWASP Top 10 (parcial)
+Padrão: Enterprise-Grade Quality & Security  
+Conformidade: OWASP Top 10 / ISO 29119 (Testes de Software)
