@@ -10,11 +10,17 @@ const bcrypt = require('bcryptjs');
 const helmet = require('helmet');
 
 const app = express();
+
+// --- CONFIGURAÇÃO DE SEGURANÇA BÁSICA & MIDDLEWARES ---
+// Importante para o Render / Nginx repassar o IP real para o rateLimit
+app.set('trust proxy', 1);
+
+// Cabeçalhos de segurança HTTP
+app.use(helmet());
 app.use(express.json());
 app.use(cors());
-app.use(helmet());
-app.set('trust proxy', 1); // Importante para o Render!
 
+// Variáveis de ambiente com fail-safe
 const JWT_SECRET = process.env.JWT_SECRET || 'chave_secreta_fap2026_qa';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5500/projetos-base/01-sistema-login';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -22,7 +28,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // --- RATE LIMITING ---
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 1000, // 5 tentativas por IP
+    max: 5, // 5 tentativas por IP
     message: { error: "Muitas tentativas de login. Tente novamente em 15 minutos." },
     standardHeaders: true,
     legacyHeaders: false,
@@ -36,11 +42,11 @@ const forgotPasswordLimiter = rateLimit({
     legacyHeaders: false,
 });
 
+// --- TRANSPORTE DE E-MAIL (MAILTRAP) ---
 function createEmailTransport() {
     if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
         return null;
     }
-
     return nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT || '587', 10),
@@ -59,7 +65,6 @@ async function sendPasswordRecoveryEmail(email, resetLink) {
         console.log(`Recuperação de senha para ${email}: ${resetLink}`);
         return;
     }
-
     await transporter.sendMail({
         from: process.env.SMTP_FROM || 'no-reply@example.com',
         to: email,
@@ -73,10 +78,12 @@ async function sendPasswordRecoveryEmail(email, resetLink) {
     });
 }
 
+// --- CONEXÃO BANCO DE DADOS ---
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('✅ Conectado ao MongoDB!'))
+    .then(() => console.log('✅ Conectado ao MongoDB com sucesso!'))
     .catch(err => console.error('❌ Erro no MongoDB:', err));
 
+// --- SCHEMAS & MODELS ---
 const UserSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
@@ -87,6 +94,7 @@ const UserSchema = new mongoose.Schema({
     passwordResetExpires: Date
 });
 const User = mongoose.model('User', UserSchema);
+
 const ProductSchema = new mongoose.Schema({
     name: { type: String, required: true, maxlength: 120 },
     description: { type: String, default: '', maxlength: 1000 },
@@ -116,6 +124,7 @@ const Order = mongoose.model('Order', OrderSchema);
 
 const VALID_ROLES = ['user', 'seller', 'admin', 'blocked'];
 
+// --- SEED DATABASE COM BCRYPT ---
 async function seedDatabase() {
     const defaultUsers = [
         { email: "admin@system.com", password: "AdminPassword123", role: "admin", name: "Administrador" },
@@ -126,21 +135,25 @@ async function seedDatabase() {
     ];
 
     for (const userData of defaultUsers) {
-        const existing = await User.findOne({ email: userData.email });
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(userData.password, salt);
 
+        const existing = await User.findOne({ email: userData.email });
         if (!existing) {
             await User.create({
                 email: userData.email,
-                password: userData.password,
+                password: hashedPassword,
                 role: userData.role,
-                name: userData.name
+                name: userData.name,
+                storeName: userData.storeName || ''
             });
         } else {
+            // Atualiza para garantir hash se o usuário ainda estivesse em texto plano
             await User.updateOne(
                 { _id: existing._id },
                 {
                     $set: {
-                        password: userData.password,
+                        password: hashedPassword,
                         role: userData.role,
                         name: userData.name,
                         storeName: userData.storeName || ''
@@ -159,9 +172,10 @@ async function seedDatabase() {
         ]);
     }
 }
+
 seedDatabase();
 
-// --- MIDDLEWARES ---
+// --- MIDDLEWARES DE AUTORIZAÇÃO ---
 const verifyToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     if (!authHeader) return res.status(403).json({ error: "Token não fornecido." });
@@ -169,7 +183,7 @@ const verifyToken = (req, res, next) => {
     const token = authHeader.split(" ")[1];
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) return res.status(401).json({ error: "Token inválido ou expirado." });
-        req.user = decoded;
+        req.user = decoded; 
         next();
     });
 };
@@ -191,92 +205,118 @@ const isCustomer = (req, res, next) => {
 
 // --- ROTAS ---
 
+// Healthcheck
 app.get('/api/health', (req, res) => {
     res.status(200).json({ service: 'lojaqa-api', version: '2.0', status: 'ok' });
 });
 
-// 1. LOGIN
+// 1. LOGIN (Com suporte duplo: bcrypt + auto-migração de contas legadas)
 app.post('/api/login', loginLimiter, async (req, res, next) => {
     try {
         const { email, password } = req.body;
-        if (!email || !password) return res.status(400).json({ error: "Usuário e senha são obrigatórios." });
+        if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
+            return res.status(400).json({ error: "Usuário e senha são obrigatórios." });
+        }
         if (!EMAIL_REGEX.test(email)) return res.status(400).json({ error: "E-mail inválido." });
-        if (password.length < 8 || password.length > 25) return res.status(400).json({ error: "Senha deve ter entre 8 e 25 caracteres." });
+        if (password.length < 8 || password.length > 25) {
+            return res.status(400).json({ error: "Senha deve ter entre 8 e 25 caracteres." });
+        }
 
         if (email === 'slow@system.com') await new Promise(r => setTimeout(r, 1800));
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: email.trim().toLowerCase() });
         if (!user) return res.status(404).json({ error: "Erro: usuário não encontrado." });
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ error: "Credenciais inválidas." }); if (user.role === 'blocked') return res.status(403).json({ error: "Usuário bloqueado." });
-        const token = jwt.sign({ id: user._id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
 
+        // Validação inteligente: verifica se já é hash bcrypt ou texto plano legado
+        const isBcrypt = user.password.startsWith('$2a$') || user.password.startsWith('$2b$');
+        let isValidPassword = false;
+
+        if (isBcrypt) {
+            isValidPassword = await bcrypt.compare(password, user.password);
+        } else {
+            // Compatibilidade retroativa para não quebrar usuários criados antes
+            isValidPassword = (user.password === password);
+            if (isValidPassword) {
+                // Auto-migra para hash no banco imediatamente
+                const salt = await bcrypt.genSalt(10);
+                user.password = await bcrypt.hash(password, salt);
+                await user.save();
+            }
+        }
+
+        if (!isValidPassword) return res.status(401).json({ error: "Credenciais inválidas." });
+        if (user.role === 'blocked') return res.status(403).json({ error: "Usuário bloqueado." });
+
+        const token = jwt.sign({ id: user._id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
         res.status(200).json({
             message: "Autenticado com sucesso",
             token,
             user: { email: user.email, name: user.name, role: user.role }
         });
     } catch (error) {
-        next(error);
+        next(error); 
     }
 });
 
-// 2. CADASTRO DE NOVO USUÁRIO (Nova Feature)
+// 2. CADASTRO DE NOVO USUÁRIO (Criptografado com bcrypt)
 app.post('/api/register', async (req, res, next) => {
     try {
         const { name, email, password, role = 'user', storeName = '' } = req.body;
-
-        if (!name || !email || !password) {
+        if (!name || !email || !password || typeof email !== 'string' || typeof password !== 'string') {
             return res.status(400).json({ error: "Todos os campos são obrigatórios." });
         }
-
         if (name.length > 50) {
             return res.status(400).json({ error: "O nome não pode ter mais de 50 caracteres." });
         }
-
         if (!EMAIL_REGEX.test(email)) {
             return res.status(400).json({ error: "E-mail inválido." });
         }
-
         if (!['user', 'seller'].includes(role)) {
             return res.status(400).json({ error: "Perfil de cadastro inválido." });
         }
-
         if (role === 'seller' && (!storeName.trim() || storeName.trim().length > 80)) {
             return res.status(400).json({ error: "Lojistas precisam informar uma loja de até 80 caracteres." });
         }
-
         if (password.length < 8 || password.length > 25) {
             return res.status(400).json({ error: "A senha deve conter entre 8 e 25 caracteres." });
         }
 
-        const existingUser = await User.findOne({ email });
+        const normalizedEmail = email.trim().toLowerCase();
+        const existingUser = await User.findOne({ email: normalizedEmail });
         if (existingUser) {
             return res.status(409).json({ error: "Já existe um usuário cadastrado com este e-mail." });
         }
 
+        // Criptografia com Salt e Hash
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
-        const newUser = new User({ name, email, password: hashedPassword, role, storeName }); await newUser.save();
 
+        const newUser = new User({
+            name: name.trim(),
+            email: normalizedEmail,
+            password: hashedPassword,
+            role,
+            storeName: role === 'seller' ? storeName.trim() : ''
+        });
+
+        await newUser.save();
         res.status(201).json({ message: "Usuário cadastrado com sucesso!" });
     } catch (error) {
         next(error);
     }
 });
 
-// 3. RECUPERAÇÃO DE SENHA (Nova Feature)
+// 3. RECUPERAÇÃO DE SENHA
 app.post('/api/forgot-password', forgotPasswordLimiter, async (req, res, next) => {
     try {
         const { email } = req.body;
-        if (!email) return res.status(400).json({ error: "O e-mail é obrigatório." });
+        if (!email || typeof email !== 'string') return res.status(400).json({ error: "O e-mail é obrigatório." });
         if (!EMAIL_REGEX.test(email)) return res.status(400).json({ error: "E-mail inválido." });
 
         const user = await User.findOne({ email: email.trim().toLowerCase() });
         if (user) {
             const token = crypto.randomBytes(20).toString('hex');
             const expires = Date.now() + 3600000; // 1 hora
-
             user.passwordResetToken = token;
             user.passwordResetExpires = new Date(expires);
             await user.save();
@@ -286,7 +326,7 @@ app.post('/api/forgot-password', forgotPasswordLimiter, async (req, res, next) =
         }
 
         res.status(200).json({
-            message: "Se o e-mail existir em nossa base, um link de recuperação será enviado."
+            message: "Se o e-mail existir em nossa base, um link de recuperação será enviado." 
         });
     } catch (error) {
         next(error);
@@ -296,28 +336,32 @@ app.post('/api/forgot-password', forgotPasswordLimiter, async (req, res, next) =
 app.post('/api/reset-password', async (req, res, next) => {
     try {
         const { email, token, password } = req.body;
-        if (!email || !token || !password) {
+        if (!email || !token || !password || typeof email !== 'string' || typeof token !== 'string' || typeof password !== 'string') {
             return res.status(400).json({ error: "E-mail, token e nova senha são obrigatórios." });
         }
-
         if (!EMAIL_REGEX.test(email)) {
             return res.status(400).json({ error: "E-mail inválido." });
         }
-
         if (password.length < 8 || password.length > 25) {
             return res.status(400).json({ error: "A senha deve conter entre 8 e 25 caracteres." });
         }
 
-        const user = await User.findOne({ email: email.trim().toLowerCase(), passwordResetToken: token });
+        const user = await User.findOne({
+            email: email.trim().toLowerCase(),
+            passwordResetToken: token
+        });
+
         if (!user || !user.passwordResetExpires || user.passwordResetExpires < new Date()) {
             return res.status(400).json({ error: "Token inválido ou expirado." });
         }
 
-        user.password = password;
+        // Criptografa a nova senha com bcrypt
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
         user.passwordResetToken = undefined;
         user.passwordResetExpires = undefined;
-        await user.save();
 
+        await user.save();
         res.status(200).json({ message: "Senha redefinida com sucesso." });
     } catch (error) {
         next(error);
@@ -329,7 +373,8 @@ app.get('/api/products', async (req, res, next) => {
     try {
         const { search = '', category = '', sellerId = '', minPrice, maxPrice } = req.query;
         const filter = { active: true };
-        if (search.trim()) {
+
+        if (typeof search === 'string' && search.trim()) {
             const s = search.trim();
             const orConditions = [
                 { name: { $regex: s, $options: 'i' } },
@@ -341,13 +386,18 @@ app.get('/api/products', async (req, res, next) => {
             }
             filter.$or = orConditions;
         }
-        if (category) filter.category = category;
-        if (sellerId && mongoose.Types.ObjectId.isValid(sellerId)) filter.sellerId = sellerId;
+
+        if (typeof category === 'string' && category) filter.category = category;
+        if (typeof sellerId === 'string' && sellerId && mongoose.Types.ObjectId.isValid(sellerId)) {
+            filter.sellerId = sellerId;
+        }
+
         if (minPrice || maxPrice) {
             filter.price = {};
-            if (minPrice) filter.price.$gte = Number(minPrice);
-            if (maxPrice) filter.price.$lte = Number(maxPrice);
+            if (minPrice && !isNaN(Number(minPrice))) filter.price.$gte = Number(minPrice);
+            if (maxPrice && !isNaN(Number(maxPrice))) filter.price.$lte = Number(maxPrice);
         }
+
         const products = await Product.find(filter).populate('sellerId', 'storeName name');
         res.status(200).json(products);
     } catch (error) {
@@ -435,16 +485,24 @@ app.post('/api/seller/products', verifyToken, isSeller, async (req, res, next) =
     try {
         const { name, description, category, price, stock, image } = req.body;
         const sellerId = req.user.role === 'admin' ? req.body.sellerId : req.user.id;
+
         if (req.user.role === 'admin' && !sellerId) {
             return res.status(400).json({ error: "O administrador deve informar a loja proprietária do produto." });
         }
         if (!name?.trim() || !category?.trim() || !Number.isFinite(Number(price)) || Number(price) < 0 || !Number.isInteger(Number(stock)) || Number(stock) < 0) {
             return res.status(400).json({ error: "Nome, categoria, preço e estoque válidos são obrigatórios." });
         }
+
         const product = await Product.create({
-            name: name.trim(), description: description?.trim() || '', category: category.trim(),
-            price: Number(price), stock: Number(stock), image: image?.trim() || '', sellerId
+            name: name.trim(),
+            description: description?.trim() || '',
+            category: category.trim(),
+            price: Number(price),
+            stock: Number(stock),
+            image: image?.trim() || '',
+            sellerId
         });
+
         res.status(201).json({ message: "Produto criado com sucesso.", product });
     } catch (error) {
         next(error);
@@ -456,10 +514,13 @@ app.put('/api/seller/products/:id', verifyToken, isSeller, async (req, res, next
         const filter = req.user.role === 'admin' ? { _id: req.params.id } : { _id: req.params.id, sellerId: req.user.id };
         const allowed = ['name', 'description', 'category', 'price', 'stock', 'image', 'active'];
         const update = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)));
+
         if (update.price !== undefined) update.price = Number(update.price);
         if (update.stock !== undefined) update.stock = Number(update.stock);
+
         const product = await Product.findOneAndUpdate(filter, update, { new: true, runValidators: true });
         if (!product) return res.status(404).json({ error: "Produto não encontrado ou sem permissão." });
+
         res.status(200).json({ message: "Produto atualizado com sucesso.", product });
     } catch (error) {
         next(error);
@@ -479,9 +540,11 @@ app.put('/api/seller/orders/:id/status', verifyToken, isSeller, async (req, res,
     try {
         const validStatuses = ['pending', 'paid', 'shipped', 'delivered', 'cancelled'];
         if (!validStatuses.includes(req.body.status)) return res.status(400).json({ error: "Status de pedido inválido." });
+
         const filter = req.user.role === 'admin' ? { _id: req.params.id } : { _id: req.params.id, 'items.sellerId': req.user.id };
         const order = await Order.findOneAndUpdate(filter, { status: req.body.status }, { new: true });
         if (!order) return res.status(404).json({ error: "Pedido não encontrado ou sem permissão." });
+
         res.status(200).json({ message: "Status atualizado.", order });
     } catch (error) {
         next(error);
@@ -498,7 +561,7 @@ app.get('/api/users', verifyToken, isAdmin, async (req, res, next) => {
     }
 });
 
-// 5. ATUALIZAR USUÁRIO (e-mail, nome, senha, role)
+// 8. ATUALIZAR USUÁRIO (e-mail, nome, senha, role)
 app.put('/api/users/:id', verifyToken, isAdmin, async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -508,31 +571,35 @@ app.put('/api/users/:id', verifyToken, isAdmin, async (req, res, next) => {
         if (email !== undefined && email !== '') {
             update.email = email.trim().toLowerCase();
         }
-
         if (name !== undefined) {
             update.name = name.trim();
         }
-
         if (storeName !== undefined) {
             update.storeName = storeName.trim();
         }
-
         if (password) {
-            update.password = password;
+            // Se forneceu nova senha, hasheia com bcrypt
+            const salt = await bcrypt.genSalt(10);
+            update.password = await bcrypt.hash(password, salt);
         }
 
         if (role !== undefined) {
             if (!VALID_ROLES.includes(role)) {
                 return res.status(400).json({ error: "Role inválida. Use user, admin ou blocked." });
             }
-
             if (role === 'admin' || role === 'seller') {
                 const adminUser = await User.findById(req.user.id);
-                if (!adminUser || adminUser.password !== (adminPassword || '')) {
+                if (!adminUser) return res.status(401).json({ error: "Administrador não encontrado." });
+
+                // Checagem de senha do admin com suporte a bcrypt ou texto pleno
+                const isAdminPwMatch = adminUser.password.startsWith('$2')
+                    ? await bcrypt.compare(adminPassword || '', adminUser.password)
+                    : adminUser.password === (adminPassword || '');
+
+                if (!isAdminPwMatch) {
                     return res.status(401).json({ error: "Senha do administrador inválida para alterar este perfil." });
                 }
             }
-
             update.role = role;
         }
 
@@ -548,7 +615,6 @@ app.put('/api/users/:id', verifyToken, isAdmin, async (req, res, next) => {
         }
 
         const updatedUser = await User.findByIdAndUpdate(id, update, { new: true, runValidators: true });
-
         if (!updatedUser) {
             return res.status(404).json({ error: "Usuário não encontrado." });
         }
