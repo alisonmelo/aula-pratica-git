@@ -6,10 +6,14 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const rateLimit = require('express-rate-limit');
+const bcrypt = require('bcryptjs');
+const helmet = require('helmet');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use(helmet());
+app.set('trust proxy', 1); // Importante para o Render!
 
 const JWT_SECRET = process.env.JWT_SECRET || 'chave_secreta_fap2026_qa';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5500/projetos-base/01-sistema-login';
@@ -165,7 +169,7 @@ const verifyToken = (req, res, next) => {
     const token = authHeader.split(" ")[1];
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) return res.status(401).json({ error: "Token inválido ou expirado." });
-        req.user = decoded; 
+        req.user = decoded;
         next();
     });
 };
@@ -203,9 +207,8 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
 
         const user = await User.findOne({ email });
         if (!user) return res.status(404).json({ error: "Erro: usuário não encontrado." });
-        if (user.password !== password) return res.status(401).json({ error: "Credenciais inválidas." });
-        if (user.role === 'blocked') return res.status(403).json({ error: "Usuário bloqueado." });
-
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) return res.status(401).json({ error: "Credenciais inválidas." }); if (user.role === 'blocked') return res.status(403).json({ error: "Usuário bloqueado." });
         const token = jwt.sign({ id: user._id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
 
         res.status(200).json({
@@ -214,7 +217,7 @@ app.post('/api/login', loginLimiter, async (req, res, next) => {
             user: { email: user.email, name: user.name, role: user.role }
         });
     } catch (error) {
-        next(error); 
+        next(error);
     }
 });
 
@@ -252,8 +255,9 @@ app.post('/api/register', async (req, res, next) => {
             return res.status(409).json({ error: "Já existe um usuário cadastrado com este e-mail." });
         }
 
-        const newUser = new User({ name, email, password, role, storeName: role === 'seller' ? storeName.trim() : '' });
-        await newUser.save();
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        const newUser = new User({ name, email, password: hashedPassword, role, storeName }); await newUser.save();
 
         res.status(201).json({ message: "Usuário cadastrado com sucesso!" });
     } catch (error) {
@@ -282,7 +286,7 @@ app.post('/api/forgot-password', forgotPasswordLimiter, async (req, res, next) =
         }
 
         res.status(200).json({
-            message: "Se o e-mail existir em nossa base, um link de recuperação será enviado." 
+            message: "Se o e-mail existir em nossa base, um link de recuperação será enviado."
         });
     } catch (error) {
         next(error);
